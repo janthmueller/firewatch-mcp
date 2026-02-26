@@ -88,7 +88,7 @@ export async function handleInstallExtension(args: unknown): Promise<McpToolResp
 
     const result = await firefox.sendBiDiCommand('webExtension.install', params);
 
-    const extensionId = result?.extension || result?.id || 'unknown';
+    const extensionId = result?.extension || 'unknown';
     const installType = permanent ? 'permanent' : 'temporary';
 
     return successResponse(
