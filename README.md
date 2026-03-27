@@ -95,7 +95,7 @@ You can pass flags or environment variables (names on the right):
 - `--accept-insecure-certs` — ignore TLS errors (`ACCEPT_INSECURE_CERTS=true`)
 - `--connect-existing` — attach to an already-running Firefox instead of launching a new one (`CONNECT_EXISTING=true`)
 - `--marionette-port` — Marionette port for connect-existing mode, default 2828 (`MARIONETTE_PORT`)
-- `--pref name=value` — set Firefox preference at startup (repeatable, requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1`)
+- `--pref name=value` — set Firefox preference at startup via `moz:firefoxOptions` (repeatable)
 - `--enable-script` — enable the `evaluate_script` tool, which executes arbitrary JavaScript in the page context (`ENABLE_SCRIPT=true`)
 - `--enable-privileged-context` — enable privileged context tools: list/select privileged contexts, evaluate privileged scripts, get/set Firefox prefs, and list extensions. Requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1` (`ENABLE_PRIVILEGED_CONTEXT=true`)
 
