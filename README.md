@@ -1,15 +1,15 @@
 # Firefox DevTools MCP
 
 [![npm version](https://badge.fury.io/js/firefox-devtools-mcp.svg)](https://www.npmjs.com/package/firefox-devtools-mcp)
-[![CI](https://github.com/freema/firefox-devtools-mcp/workflows/CI/badge.svg)](https://github.com/freema/firefox-devtools-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/mozilla/firefox-devtools-mcp/workflows/CI/badge.svg)](https://github.com/mozilla/firefox-devtools-mcp/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/freema/firefox-devtools-mcp/branch/main/graph/badge.svg)](https://codecov.io/gh/freema/firefox-devtools-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-<a href="https://glama.ai/mcp/servers/@freema/firefox-devtools-mcp"><img src="https://glama.ai/mcp/servers/@freema/firefox-devtools-mcp/badge" height="223" alt="Glama"></a>
+<a href="https://glama.ai/mcp/servers/@mozilla/firefox-devtools-mcp"><img src="https://glama.ai/mcp/servers/@freema/firefox-devtools-mcp/badge" height="223" alt="Glama"></a>
 
 Model Context Protocol server for automating Firefox via WebDriver BiDi (through Selenium WebDriver). Works with Claude Code, Claude Desktop, Cursor, Cline and other MCP clients.
 
-Repository: https://github.com/freema/firefox-devtools-mcp
+Repository: https://github.com/mozilla/firefox-devtools-mcp
 
 > **Note**: This MCP server requires a local Firefox browser installation and cannot run on cloud hosting services like glama.ai. Use `npx firefox-devtools-mcp@latest` to run locally, or use Docker with the provided Dockerfile.
 
@@ -95,6 +95,11 @@ You can pass flags or environment variables (names on the right):
 - `--accept-insecure-certs` — ignore TLS errors (`ACCEPT_INSECURE_CERTS=true`)
 - `--connect-existing` — attach to an already-running Firefox instead of launching a new one (`CONNECT_EXISTING=true`)
 - `--marionette-port` — Marionette port for connect-existing mode, default 2828 (`MARIONETTE_PORT`)
+- `--pref name=value` — set Firefox preference at startup via `moz:firefoxOptions` (repeatable)
+- `--enable-script` — enable the `evaluate_script` tool, which executes arbitrary JavaScript in the page context (`ENABLE_SCRIPT=true`)
+- `--enable-privileged-context` — enable privileged context tools: list/select privileged contexts, evaluate privileged scripts, get/set Firefox prefs, and list extensions. Requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1` (`ENABLE_PRIVILEGED_CONTEXT=true`)
+
+> **Note on `--pref`:** When Firefox runs in automation, it applies [RecommendedPreferences](https://searchfox.org/firefox-main/source/remote/shared/RecommendedPreferences.sys.mjs) that modify browser behavior for testing. The `--pref` option allows overriding these defaults when needed.
 
 ### Connect to existing Firefox
 
@@ -126,6 +131,10 @@ BiDi-dependent features (console events, network events) are not available in co
 - Network: list/get (ID‑first, filters, always‑on capture)
 - Console: list/clear
 - Screenshot: page/by uid (with optional `saveTo` for CLI environments)
+- Script: evaluate_script
+- Privileged Context: list/select privileged ("chrome") contexts, evaluate_privileged_script (requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1`)
+- WebExtension: install_extension, uninstall_extension, list_extensions (list requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1`)
+- Firefox Management: get_firefox_info, get_firefox_output, restart_firefox, set_firefox_prefs, get_firefox_prefs
 - Utilities: accept/dismiss dialog, history back/forward, set viewport
 
 ### Screenshot optimization for Claude Code
@@ -195,4 +204,4 @@ npm run inspector:dev
 
 ## Author
 
-Created by [Tomáš Grasl](https://www.tomasgrasl.cz/)
+Created by [Tomáš Grasl](https://www.tomasgrasl.cz/), maintained by [Mozilla](https://www.mozilla.org).

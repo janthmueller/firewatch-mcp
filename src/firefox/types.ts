@@ -60,6 +60,10 @@ export interface FirefoxLaunchOptions {
   acceptInsecureCerts?: boolean | undefined;
   connectExisting?: boolean | undefined;
   marionettePort?: number | undefined;
+  env?: Record<string, string> | undefined;
+  logFile?: string | undefined;
+  /** Firefox preferences to set at startup via moz:firefoxOptions */
+  prefs?: Record<string, string | number | boolean> | undefined;
 }
 
 /**

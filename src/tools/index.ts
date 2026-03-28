@@ -16,8 +16,8 @@ export {
   handleClosePage,
 } from './pages.js';
 
-// Script evaluation tools - DISABLED (see docs/future-features.md)
-// export { evaluateScriptTool, handleEvaluateScript } from './script.js';
+// Script evaluation tools
+export { evaluateScriptTool, handleEvaluateScript } from './script.js';
 
 // Console tools
 export {
@@ -80,3 +80,41 @@ export {
   handleNavigateHistory,
   handleSetViewportSize,
 } from './utilities.js';
+
+// Firefox management tools (logs, restart, info)
+export {
+  getFirefoxLogsTool,
+  getFirefoxInfoTool,
+  restartFirefoxTool,
+  handleGetFirefoxLogs,
+  handleGetFirefoxInfo,
+  handleRestartFirefox,
+} from './firefox-management.js';
+
+// Privileged ("chrome") context tools
+export {
+  listPrivilegedContextsTool,
+  selectPrivilegedContextTool,
+  evaluatePrivilegedScriptTool,
+  handleListPrivilegedContexts,
+  handleSelectPrivilegedContext,
+  handleEvaluatePrivilegedScript,
+} from './privileged-context.js';
+
+// Firefox preferences tools
+export {
+  setFirefoxPrefsTool,
+  getFirefoxPrefsTool,
+  handleSetFirefoxPrefs,
+  handleGetFirefoxPrefs,
+} from './firefox-prefs.js';
+
+// WebExtension tools (install, uninstall, and list extensions)
+export {
+  installExtensionTool,
+  uninstallExtensionTool,
+  listExtensionsTool,
+  handleInstallExtension,
+  handleUninstallExtension,
+  handleListExtensions,
+} from './webextension.js';

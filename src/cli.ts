@@ -6,6 +6,50 @@ import type { Options as YargsOptions } from 'yargs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
+/**
+ * Parsed preference value (boolean, integer, or string)
+ */
+export type PrefValue = string | number | boolean;
+
+/**
+ * Parse preference strings into typed values
+ * Format: "name=value" where value is auto-typed as boolean/integer/string
+ */
+export function parsePrefs(prefs: string[] | undefined): Record<string, PrefValue> {
+  const result: Record<string, PrefValue> = {};
+
+  if (!prefs || prefs.length === 0) {
+    return result;
+  }
+
+  for (const pref of prefs) {
+    const eqIndex = pref.indexOf('=');
+    if (eqIndex === -1) {
+      // Skip malformed entries (no equals sign)
+      continue;
+    }
+
+    const name = pref.slice(0, eqIndex);
+    const rawValue = pref.slice(eqIndex + 1);
+
+    // Type inference
+    let value: PrefValue;
+    if (rawValue === 'true') {
+      value = true;
+    } else if (rawValue === 'false') {
+      value = false;
+    } else if (/^-?\d+$/.test(rawValue)) {
+      value = parseInt(rawValue, 10);
+    } else {
+      value = rawValue;
+    }
+
+    result[name] = value;
+  }
+
+  return result;
+}
+
 export const cliOptions = {
   firefoxPath: {
     type: 'string',
@@ -65,6 +109,35 @@ export const cliOptions = {
     type: 'number',
     description: 'Marionette port to connect to when using --connect-existing (default: 2828)',
     default: Number(process.env.MARIONETTE_PORT ?? '2828'),
+  },
+  env: {
+    type: 'array',
+    description:
+      'Environment variables for Firefox in KEY=VALUE format. Can be specified multiple times. Example: --env MOZ_LOG=HTMLMediaElement:4',
+  },
+  outputFile: {
+    type: 'string',
+    description:
+      'Path to file where Firefox output (stdout/stderr) will be written. If not specified, output is written to ~/.firefox-devtools-mcp/output/',
+  },
+  pref: {
+    type: 'array',
+    string: true,
+    description:
+      'Set Firefox preference at startup via moz:firefoxOptions (format: name=value). Can be specified multiple times.',
+    alias: 'p',
+  },
+  enableScript: {
+    type: 'boolean',
+    description:
+      'Enable the evaluate_script tool, which allows executing arbitrary JavaScript in the page context.',
+    default: (process.env.ENABLE_SCRIPT ?? 'false') === 'true',
+  },
+  enablePrivilegedContext: {
+    type: 'boolean',
+    description:
+      'Enable privileged context tools: list/select privileged contexts, evaluate privileged scripts, get/set Firefox prefs, and list extensions. Requires MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1.',
+    default: (process.env.ENABLE_PRIVILEGED_CONTEXT ?? 'false') === 'true',
   },
 } satisfies Record<string, YargsOptions>;
 

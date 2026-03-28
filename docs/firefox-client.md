@@ -141,7 +141,9 @@ Selenium automatically manages Firefox through geckodriver:
 --firefox-path <path>    # Firefox executable path
 --headless               # Run Firefox headless
 --viewport <WxH>         # Set viewport size (e.g., 1280x720)
+--profile-path <path>    # Firefox profile path
 --start-url <url>        # Initial URL to navigate to
+--pref <name=value>      # Set Firefox preference (repeatable, requires MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1)
 ```
 
 **Environment Variables:**
@@ -151,9 +153,44 @@ START_URL=https://example.com
 ```
 
 **Profile Management:**
-- Selenium creates temporary profiles automatically
-- Custom profile support via `firefoxOptions.setProfile()`
-- Automatic cleanup on shutdown
+- Use `--profile-path` to specify a Firefox profile directory
+- Profile is loaded in-place via Firefox's native `--profile` argument (not copied to temp)
+- Runtime profile changes supported via `restart_firefox` tool's `profilePath` parameter
+
+### Firefox Preferences
+
+When Firefox runs in WebDriver BiDi mode (automated testing), it applies [RecommendedPreferences](https://searchfox.org/firefox-main/source/remote/shared/RecommendedPreferences.sys.mjs) that change default behavior for test reliability. The `--pref` option and preference tools allow overriding these when needed.
+
+**Use cases:**
+- Firefox development and debugging
+- Testing scenarios requiring production-like behavior
+- Enabling specific features disabled by RecommendedPreferences
+
+**Example:** The `browser.ml.enable` preference controls Firefox's ML/AI features. RecommendedPreferences disables this by default, making it impossible to use this MCP server to develop or test AI-powered features like Smart Window without explicitly enabling it.
+
+**Setting preferences:**
+
+At startup via CLI:
+```bash
+# Enable ML/AI features like Smart Window
+npx firefox-devtools-mcp --pref "browser.ml.enable=true"
+```
+
+At runtime via tools (requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1`):
+```javascript
+// Set preferences (e.g., enable ML features)
+await set_firefox_prefs({ prefs: { "browser.ml.enable": true } });
+
+// Get preference values
+await get_firefox_prefs({ names: ["browser.ml.enable"] });
+
+// Via restart_firefox
+await restart_firefox({ prefs: { "browser.ml.enable": true } });
+```
+
+**Note:** Preference tools require `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1` environment variable.
+
+**Preference persistence:** Preferences set via CLI or `restart_firefox` are preserved across restarts. When `restart_firefox` is called without a `prefs` parameter, existing preferences are re-applied automatically.
 
 ## Available Tools
 
@@ -187,6 +224,22 @@ The server provides comprehensive browser automation tools:
 | `start_network_monitoring` | Enable network capture | ✅ Implemented |
 | `stop_network_monitoring` | Disable network capture | ✅ Implemented |
 | `performance_get_metrics` | Get timing metrics | ✅ Via `performance` API |
+
+### Firefox Management
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_firefox_info` | Get current Firefox configuration | (none) |
+| `get_firefox_output` | Get Firefox stdout/stderr/MOZ_LOG output | `lines`, `grep`, `since` |
+| `restart_firefox` | Restart or configure Firefox | `firefoxPath`, `profilePath`, `env`, `headless`, `startUrl`, `prefs` |
+| `set_firefox_prefs` | Set Firefox preferences at runtime | `prefs` (object) |
+| `get_firefox_prefs` | Get Firefox preference values | `names` (array) |
+
+**Note:** `set_firefox_prefs` and `get_firefox_prefs` require `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1` environment variable.
+
+**Note:** `restart_firefox` works in two modes:
+- If Firefox is running: closes and restarts with new configuration
+- If Firefox is not running: configures options for next tool call that triggers launch
 
 ✅ = Fully implemented
 

@@ -5,6 +5,9 @@
 import { Builder, Browser } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdirSync, openSync, closeSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import type { FirefoxLaunchOptions } from './types.js';
 import { log, logDebug } from '../utils/logger.js';
 
@@ -20,6 +23,17 @@ export interface IElement {
   sendKeys(...args: Array<string | number>): Promise<void>;
   isDisplayed(): Promise<boolean>;
   takeScreenshot(): Promise<string>;
+}
+
+export interface IBiDiSocket {
+  readyState: number;
+  on(event: string, listener: (data: unknown) => void): void;
+  off(event: string, listener: (data: unknown) => void): void;
+  send(data: string): void;
+}
+
+export interface IBiDi {
+  socket: IBiDiSocket;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -62,6 +76,7 @@ export interface IDriver {
     perform(): Promise<void>;
     clear(): Promise<void>;
   };
+  getBidi(): Promise<IBiDi>;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -419,6 +434,10 @@ class GeckodriverHttpDriver implements IDriver {
   kill(): void {
     this.gdProcess.kill();
   }
+
+  getBidi(): Promise<IBiDi> {
+    throw new Error('BiDi not available in connect-existing mode');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -463,6 +482,9 @@ function findGeckodriverInCache(
 export class FirefoxCore {
   private driver: IDriver | null = null;
   private currentContextId: string | null = null;
+  private originalEnv: Record<string, string | undefined> = {};
+  private logFilePath: string | undefined;
+  private logFileFd: number | undefined;
 
   constructor(private options: FirefoxLaunchOptions) {}
 
@@ -483,6 +505,31 @@ export class FirefoxCore {
       const port = this.options.marionettePort ?? 2828;
       this.driver = await GeckodriverHttpDriver.connect(port);
     } else {
+      // Set up output file for capturing Firefox stdout/stderr
+      if (this.options.logFile) {
+        this.logFilePath = this.options.logFile;
+      } else if (this.options.env && Object.keys(this.options.env).length > 0) {
+        const outputDir = join(homedir(), '.firefox-devtools-mcp', 'output');
+        mkdirSync(outputDir, { recursive: true });
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        this.logFilePath = join(outputDir, `firefox-${timestamp}.log`);
+      }
+
+      // Set environment variables (will be inherited by geckodriver -> Firefox)
+      if (this.options.env) {
+        for (const [key, value] of Object.entries(this.options.env)) {
+          this.originalEnv[key] = process.env[key];
+          process.env[key] = value;
+          logDebug(`Set env ${key}=${value}`);
+        }
+
+        // Important: Do NOT set MOZ_LOG_FILE - MOZ_LOG writes to stderr by default
+        // We capture stderr directly through file descriptor redirection
+        if (this.options.env.MOZ_LOG_FILE) {
+          logDebug('Note: MOZ_LOG_FILE in env will be used, but may be blocked by sandbox');
+        }
+      }
+
       // Standard path: launch a new Firefox via selenium-webdriver
       const firefoxOptions = new firefox.Options();
       firefoxOptions.enableBidi();
@@ -503,16 +550,41 @@ export class FirefoxCore {
         firefoxOptions.addArguments(...this.options.args);
       }
       if (this.options.profilePath) {
-        firefoxOptions.setProfile(this.options.profilePath);
+        // Use Firefox's native --profile argument for reliable profile loading
+        // (Selenium's setProfile() copies to temp dir which can be unreliable)
+        firefoxOptions.addArguments('--profile', this.options.profilePath);
+        log(`📁 Using Firefox profile: ${this.options.profilePath}`);
       }
       if (this.options.acceptInsecureCerts) {
         firefoxOptions.setAcceptInsecureCerts(true);
+      }
+      if (this.options.prefs) {
+        for (const [name, value] of Object.entries(this.options.prefs)) {
+          firefoxOptions.setPreference(name, value);
+        }
+      }
+
+      // Configure geckodriver service to capture output
+      const serviceBuilder = new firefox.ServiceBuilder();
+
+      // If we have a log file, open it and redirect geckodriver output there
+      // This captures both geckodriver logs and Firefox stderr (including MOZ_LOG)
+      if (this.logFilePath) {
+        // Open file for appending, create if doesn't exist
+        this.logFileFd = openSync(this.logFilePath, 'a');
+
+        // Configure stdio: stdin=ignore, stdout=logfile, stderr=logfile
+        // This redirects all output from geckodriver and Firefox to the log file
+        serviceBuilder.setStdio(['ignore', this.logFileFd, this.logFileFd]);
+
+        log(`📝 Capturing Firefox output to: ${this.logFilePath}`);
       }
 
       // selenium WebDriver satisfies IDriver structurally at runtime
       this.driver = (await new Builder()
         .forBrowser(Browser.FIREFOX)
         .setFirefoxOptions(firefoxOptions)
+        .setFirefoxService(serviceBuilder)
         .build()) as unknown as IDriver;
     }
 
@@ -590,6 +662,99 @@ export class FirefoxCore {
   }
 
   /**
+   * Get log file path
+   */
+  getLogFilePath(): string | undefined {
+    return this.logFilePath;
+  }
+
+  /**
+   * Get current launch options
+   */
+  getOptions(): FirefoxLaunchOptions {
+    return this.options;
+  }
+
+  /**
+   * Wait for WebSocket to be in OPEN state
+   */
+  private async waitForWebSocketOpen(ws: any, timeout: number = 5000): Promise<void> {
+    // Already open
+    if (ws.readyState === 1) {
+      return;
+    }
+
+    // Still connecting - wait for open event with timeout
+    if (ws.readyState === 0) {
+      return new Promise<void>((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          ws.off('open', onOpen);
+          reject(new Error('Timeout waiting for WebSocket to open'));
+        }, timeout);
+
+        const onOpen = () => {
+          clearTimeout(timeoutId);
+          ws.off('open', onOpen);
+          resolve();
+        };
+        ws.on('open', onOpen);
+      });
+    }
+
+    throw new Error(`WebSocket is not open: readyState ${ws.readyState}`);
+  }
+
+  /**
+   * Send raw BiDi command and get response
+   */
+  async sendBiDiCommand(method: string, params: Record<string, any> = {}): Promise<any> {
+    if (!this.driver) {
+      throw new Error('Driver not connected');
+    }
+
+    const bidi = await this.driver.getBidi();
+    const ws = bidi.socket;
+
+    // Wait for WebSocket to be ready before sending
+    await this.waitForWebSocketOpen(ws);
+
+    const id = Math.floor(Math.random() * 1000000);
+
+    return new Promise((resolve, reject) => {
+      const messageHandler = (data: any) => {
+        try {
+          const payload = JSON.parse(data.toString());
+          if (payload.id === id) {
+            ws.off('message', messageHandler);
+            if (payload.error) {
+              reject(new Error(`BiDi error: ${JSON.stringify(payload.error)}`));
+            } else {
+              resolve(payload.result);
+            }
+          }
+        } catch (err) {
+          // ignore parse errors
+        }
+      };
+
+      ws.on('message', messageHandler);
+
+      const command = {
+        id,
+        method,
+        params,
+      };
+
+      ws.send(JSON.stringify(command));
+
+      setTimeout(() => {
+        ws.off('message', messageHandler);
+        reject(new Error(`BiDi command timeout: ${method}`));
+      }, 10000);
+    });
+  }
+
+  /**
    * Close driver and cleanup.
    * When connected to an existing Firefox instance, only kills geckodriver
    * without closing the browser.
@@ -603,6 +768,30 @@ export class FirefoxCore {
       }
       this.driver = null;
     }
+
+    // Close log file descriptor if open
+    if (this.logFileFd !== undefined) {
+      try {
+        closeSync(this.logFileFd);
+        logDebug('Log file closed');
+      } catch (error) {
+        logDebug(
+          `Error closing log file: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+      this.logFileFd = undefined;
+    }
+
+    // Restore original environment variables
+    for (const [key, value] of Object.entries(this.originalEnv)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+    this.originalEnv = {};
+
     log('✅ Firefox DevTools closed');
   }
 }

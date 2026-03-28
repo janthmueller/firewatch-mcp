@@ -375,6 +375,14 @@ export class FirefoxClient {
   // ============================================================================
 
   /**
+   * Send raw BiDi command (for advanced operations)
+   * @internal
+   */
+  async sendBiDiCommand(method: string, params: Record<string, any> = {}): Promise<any> {
+    return await this.core.sendBiDiCommand(method, params);
+  }
+
+  /**
    * Get WebDriver instance (for advanced operations)
    * @internal
    */
@@ -383,11 +391,33 @@ export class FirefoxClient {
   }
 
   /**
+   * Get current browsing context ID (for advanced operations)
+   * @internal
+   */
+  getCurrentContextId(): string | null {
+    return this.core.getCurrentContextId();
+  }
+
+  /**
    * Check if Firefox is still connected and responsive
    * Returns false if Firefox was closed or connection is broken
    */
   async isConnected(): Promise<boolean> {
     return await this.core.isConnected();
+  }
+
+  /**
+   * Get log file path (if logging is enabled)
+   */
+  getLogFilePath(): string | undefined {
+    return this.core.getLogFilePath();
+  }
+
+  /**
+   * Get current launch options
+   */
+  getOptions(): FirefoxLaunchOptions {
+    return this.core.getOptions();
   }
 
   /**

@@ -34,7 +34,7 @@ import {
 
 import { SERVER_NAME, SERVER_VERSION } from './config/constants.js';
 import { log, logError, logDebug } from './utils/logger.js';
-import { parseArguments } from './cli.js';
+import { parseArguments, parsePrefs } from './cli.js';
 import { FirefoxDevTools } from './firefox/index.js';
 import type { FirefoxLaunchOptions } from './firefox/types.js';
 import * as tools from './tools/index.js';
@@ -57,6 +57,7 @@ export const args = parseArguments(SERVER_VERSION);
 
 // Global context (lazy initialized on first tool call)
 let firefox: FirefoxDevTools | null = null;
+let nextLaunchOptions: FirefoxLaunchOptions | null = null;
 
 /**
  * Reset Firefox instance (used when disconnection is detected)
@@ -67,6 +68,29 @@ export function resetFirefox(): void {
     firefox = null;
   }
   log('Firefox instance reset - will reconnect on next tool call');
+}
+
+/**
+ * Set options for the next Firefox launch
+ * Used by restart_firefox tool to change configuration
+ */
+export function setNextLaunchOptions(options: FirefoxLaunchOptions): void {
+  nextLaunchOptions = options;
+  log('Next launch options updated');
+}
+
+/**
+ * Check if Firefox is currently running (without auto-starting)
+ */
+export function isFirefoxRunning(): boolean {
+  return firefox !== null;
+}
+
+/**
+ * Get Firefox instance if running, null otherwise (no auto-start)
+ */
+export function getFirefoxIfRunning(): FirefoxDevTools | null {
+  return firefox;
 }
 
 export async function getFirefox(): Promise<FirefoxDevTools> {
@@ -84,23 +108,56 @@ export async function getFirefox(): Promise<FirefoxDevTools> {
   // No existing instance - create new connection
   log('Initializing Firefox DevTools connection...');
 
-  const options: FirefoxLaunchOptions = {
-    firefoxPath: args.firefoxPath ?? undefined,
-    headless: args.headless,
-    profilePath: args.profilePath ?? undefined,
-    viewport: args.viewport ?? undefined,
-    args: (args.firefoxArg as string[] | undefined) ?? undefined,
-    startUrl: args.startUrl ?? undefined,
-    acceptInsecureCerts: args.acceptInsecureCerts,
-    connectExisting: args.connectExisting,
-    marionettePort: args.marionettePort,
-  };
+  let options: FirefoxLaunchOptions;
+
+  // Use nextLaunchOptions if set (from restart_firefox tool)
+  if (nextLaunchOptions) {
+    options = nextLaunchOptions;
+    nextLaunchOptions = null; // Clear after use
+    log('Using custom launch options from restart_firefox');
+  } else {
+    // Parse environment variables from CLI args (format: KEY=VALUE)
+    let envVars: Record<string, string> | undefined;
+    if (args.env && Array.isArray(args.env) && args.env.length > 0) {
+      envVars = {};
+      for (const envStr of args.env as string[]) {
+        const [key, ...valueParts] = envStr.split('=');
+        if (key && valueParts.length > 0) {
+          envVars[key] = valueParts.join('=');
+        }
+      }
+    }
+
+    // Parse preferences from CLI args
+    const prefValues = parsePrefs(args.pref);
+    const prefs = Object.keys(prefValues).length > 0 ? prefValues : undefined;
+
+    options = {
+      firefoxPath: args.firefoxPath ?? undefined,
+      headless: args.headless,
+      profilePath: args.profilePath ?? undefined,
+      viewport: args.viewport ?? undefined,
+      args: (args.firefoxArg as string[] | undefined) ?? undefined,
+      startUrl: args.startUrl ?? undefined,
+      acceptInsecureCerts: args.acceptInsecureCerts,
+      connectExisting: args.connectExisting,
+      marionettePort: args.marionettePort,
+      env: envVars,
+      logFile: args.outputFile ?? undefined,
+      prefs,
+    };
+  }
 
   firefox = new FirefoxDevTools(options);
-  await firefox.connect();
-  log('Firefox DevTools connection established');
-
-  return firefox;
+  try {
+    await firefox.connect();
+    log('Firefox DevTools connection established');
+    return firefox;
+  } catch (error) {
+    // Connection failed, clean up the failed instance
+    firefox = null;
+    throw error;
+  }
 }
 
 // Tool handler mapping
@@ -111,9 +168,6 @@ const toolHandlers = new Map<string, (input: unknown) => Promise<McpToolResponse
   ['navigate_page', tools.handleNavigatePage],
   ['select_page', tools.handleSelectPage],
   ['close_page', tools.handleClosePage],
-
-  // Script evaluation - DISABLED (see docs/future-features.md)
-  // ['evaluate_script', tools.handleEvaluateScript],
 
   // Console
   ['list_console_messages', tools.handleListConsoleMessages],
@@ -145,6 +199,30 @@ const toolHandlers = new Map<string, (input: unknown) => Promise<McpToolResponse
   ['dismiss_dialog', tools.handleDismissDialog],
   ['navigate_history', tools.handleNavigateHistory],
   ['set_viewport_size', tools.handleSetViewportSize],
+
+  // Firefox Management
+  ['get_firefox_output', tools.handleGetFirefoxLogs],
+  ['get_firefox_info', tools.handleGetFirefoxInfo],
+  ['restart_firefox', tools.handleRestartFirefox],
+
+  // WebExtensions (install/uninstall use standard BiDi, no privileged context required)
+  ['install_extension', tools.handleInstallExtension],
+  ['uninstall_extension', tools.handleUninstallExtension],
+
+  // Script evaluation — requires --enable-script
+  ...(args.enableScript ? ([['evaluate_script', tools.handleEvaluateScript]] as const) : []),
+
+  // Privileged context tools — requires --enable-privileged-context
+  ...(args.enablePrivilegedContext
+    ? ([
+        ['list_privileged_contexts', tools.handleListPrivilegedContexts],
+        ['select_privileged_context', tools.handleSelectPrivilegedContext],
+        ['evaluate_privileged_script', tools.handleEvaluatePrivilegedScript],
+        ['set_firefox_prefs', tools.handleSetFirefoxPrefs],
+        ['get_firefox_prefs', tools.handleGetFirefoxPrefs],
+        ['list_extensions', tools.handleListExtensions],
+      ] as const)
+    : []),
 ]);
 
 // All tool definitions
@@ -155,9 +233,6 @@ const allTools = [
   tools.navigatePageTool,
   tools.selectPageTool,
   tools.closePageTool,
-
-  // Script evaluation - DISABLED (see docs/future-features.md)
-  // tools.evaluateScriptTool,
 
   // Console
   tools.listConsoleMessagesTool,
@@ -189,6 +264,30 @@ const allTools = [
   tools.dismissDialogTool,
   tools.navigateHistoryTool,
   tools.setViewportSizeTool,
+
+  // Firefox Management
+  tools.getFirefoxLogsTool,
+  tools.getFirefoxInfoTool,
+  tools.restartFirefoxTool,
+
+  // WebExtensions (install/uninstall use standard BiDi, no privileged context required)
+  tools.installExtensionTool,
+  tools.uninstallExtensionTool,
+
+  // Script evaluation — requires --enable-script
+  ...(args.enableScript ? [tools.evaluateScriptTool] : []),
+
+  // Privileged context tools — requires --enable-privileged-context
+  ...(args.enablePrivilegedContext
+    ? [
+        tools.listPrivilegedContextsTool,
+        tools.selectPrivilegedContextTool,
+        tools.evaluatePrivilegedScriptTool,
+        tools.setFirefoxPrefsTool,
+        tools.getFirefoxPrefsTool,
+        tools.listExtensionsTool,
+      ]
+    : []),
 ];
 
 async function main() {
