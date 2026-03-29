@@ -97,10 +97,10 @@ export async function handleSetFirefoxPrefs(args: unknown): Promise<McpToolRespo
 
       return successResponse(output.join('\n'));
     } finally {
-      // Restore content context
+      // Restore previous context (skip if already on the right chrome context)
       try {
-        await driver.setContext('content');
-        if (originalContextId) {
+        if (originalContextId && originalContextId !== chromeContextId) {
+          await driver.setContext('content');
           await driver.switchTo().window(originalContextId);
         }
       } catch {
@@ -222,10 +222,10 @@ export async function handleGetFirefoxPrefs(args: unknown): Promise<McpToolRespo
 
       return successResponse(output.join('\n'));
     } finally {
-      // Restore content context
+      // Restore previous context (skip if already on the right chrome context)
       try {
-        await driver.setContext('content');
-        if (originalContextId) {
+        if (originalContextId && originalContextId !== chromeContextId) {
+          await driver.setContext('content');
           await driver.switchTo().window(originalContextId);
         }
       } catch {

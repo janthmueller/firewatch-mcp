@@ -111,6 +111,10 @@ export async function handleSelectPrivilegedContext(args: unknown): Promise<McpT
       );
     }
 
+    // Update tracked context so helper tools (set_firefox_prefs, list_extensions)
+    // restore to this context instead of the old content context.
+    firefox.setCurrentContextId(contextId);
+
     return successResponse(
       `✅ Switched to privileged context: ${contextId} (Marionette context set to privileged)`
     );
