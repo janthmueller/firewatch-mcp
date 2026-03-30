@@ -399,6 +399,14 @@ export class FirefoxClient {
   }
 
   /**
+   * Update current browsing context ID
+   * @internal
+   */
+  setCurrentContextId(contextId: string): void {
+    this.core.setCurrentContextId(contextId);
+  }
+
+  /**
    * Check if Firefox is still connected and responsive
    * Returns false if Firefox was closed or connection is broken
    */
