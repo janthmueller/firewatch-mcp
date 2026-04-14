@@ -1,6 +1,6 @@
 # CI and Release
 
-This project ships with ready-to-use GitHub Actions for CI, release, and npm publishing.
+This project ships with GitHub Actions for CI, PR validation, and automated releases.
 
 Workflows
 
@@ -16,13 +16,9 @@ Workflows
 
   - Fast checks on PR open/update: lint, format check, typecheck, unit tests, build.
 
-- Release (.github/workflows/release.yml)
-
-  - On tag push `v*`: runs tests, builds `dist/`, creates a GitHub Release with a tarball of `dist` + metadata.
-
-- Publish (.github/workflows/publish.yml)
-  - On tag push `v*.*.*` (and via manual dispatch): builds and publishes to npm with provenance.
-  - Uses npm trusted publishing via GitHub Actions OIDC; no `NPM_TOKEN` is required.
+- Release (.github/workflows/publish.yml)
+  - On push to `main` (and via manual dispatch): runs checks, then executes `semantic-release`.
+  - `semantic-release` analyzes conventional commits, creates the next version tag, publishes `firewatch-mcp` to npm with provenance, and creates a GitHub Release with the npm tarball attached.
 
 Secrets
 
@@ -30,13 +26,21 @@ Secrets
 
 Release flow
 
-1. Bump version in `package.json` (keep 0.x until API is stable):
-   - `npm version patch` (or minor)
-   - Commit the change
-2. Create and push the tag (must match package.json):
-   - `git tag v0.2.0 && git push origin v0.2.0`
-3. `release` creates a GitHub Release; `publish` publishes to npm.
-4. For npm publishing to work, the `firewatch-mcp` package on npm must trust the GitHub Actions workflow `publish.yml` for the `janthmueller/firewatch-mcp` repository.
+1. Merge conventional commits to `main`.
+2. The `publish` workflow runs `semantic-release` after checks pass.
+3. `semantic-release` determines the next semantic version from commit messages:
+   - `fix:` -> patch
+   - `feat:` -> minor
+   - `!` or `BREAKING CHANGE:` -> major
+4. If a release is needed, `semantic-release` creates the git tag and GitHub Release, then publishes `firewatch-mcp` to npm via trusted publishing.
+5. For npm publishing to work, the `firewatch-mcp` package on npm must trust the GitHub Actions workflow `publish.yml` for the `janthmueller/firewatch-mcp` repository.
+
+Conventional commit examples
+
+- `fix: handle stale uid lookup during extraction`
+- `feat: add compact snapshot output`
+- `feat!: rename plugin commands to firewatch`
+- `docs: clarify npm trusted publishing setup`
 
 Windows Integration Tests
 
@@ -49,6 +53,6 @@ Windows Integration Tests
 Notes
 
 - If you want Codecov upload to run, switch CI test step to `npm run test:coverage` or generate `coverage/lcov.info`.
-- Provenance is enabled for npm publish (Node 20+).
-- Trusted publishing requires GitHub-hosted runners plus npm trusted publisher configuration on the package settings page.
+- Provenance is enabled for npm publish via trusted publishing on GitHub-hosted runners.
+- Conventional commit messages on `main` now drive versioning and release notes.
 - Use `@latest` in README examples to encourage npx usage.
