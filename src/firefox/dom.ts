@@ -62,7 +62,9 @@ export class DomInteractions {
         throw new Error('uid parameter is required when scope="uid"');
       }
       if (!this.resolveUid) {
-        throw new Error('extractText: resolveUid callback not set. Ensure snapshot is initialized.');
+        throw new Error(
+          'extractText: resolveUid callback not set. Ensure snapshot is initialized.'
+        );
       }
       targetElement = await this.resolveUid(uid);
     }

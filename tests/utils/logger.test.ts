@@ -25,11 +25,7 @@ describe('Logger Utilities', () => {
 
     it('should log messages with additional arguments', () => {
       log('Test message', 'arg1', 123);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[firewatch-mcp] Test message',
-        'arg1',
-        123
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[firewatch-mcp] Test message', 'arg1', 123);
     });
   });
 
@@ -57,10 +53,9 @@ describe('Logger Utilities', () => {
     it('should log non-Error objects', () => {
       logError('Something failed', { code: 500 });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[firewatch-mcp] ERROR: Something failed',
-        { code: 500 }
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[firewatch-mcp] ERROR: Something failed', {
+        code: 500,
+      });
     });
 
     it('should log without error object', () => {
