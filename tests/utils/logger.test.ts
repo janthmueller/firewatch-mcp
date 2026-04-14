@@ -20,16 +20,12 @@ describe('Logger Utilities', () => {
   describe('log', () => {
     it('should log messages with prefix', () => {
       log('Test message');
-      expect(consoleErrorSpy).toHaveBeenCalledWith('[firefox-devtools-mcp] Test message');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[firewatch-mcp] Test message');
     });
 
     it('should log messages with additional arguments', () => {
       log('Test message', 'arg1', 123);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[firefox-devtools-mcp] Test message',
-        'arg1',
-        123
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[firewatch-mcp] Test message', 'arg1', 123);
     });
   });
 
@@ -39,7 +35,7 @@ describe('Logger Utilities', () => {
       logError('Something failed', error);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[firefox-devtools-mcp] ERROR: Something failed',
+        '[firewatch-mcp] ERROR: Something failed',
         'Test error'
       );
     });
@@ -57,17 +53,16 @@ describe('Logger Utilities', () => {
     it('should log non-Error objects', () => {
       logError('Something failed', { code: 500 });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[firefox-devtools-mcp] ERROR: Something failed',
-        { code: 500 }
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[firewatch-mcp] ERROR: Something failed', {
+        code: 500,
+      });
     });
 
     it('should log without error object', () => {
       logError('Something failed');
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[firefox-devtools-mcp] ERROR: Something failed',
+        '[firewatch-mcp] ERROR: Something failed',
         undefined
       );
     });
@@ -83,24 +78,24 @@ describe('Logger Utilities', () => {
       process.env.DEBUG = '*';
       logDebug('Debug message');
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('[firefox-devtools-mcp] DEBUG: Debug message');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[firewatch-mcp] DEBUG: Debug message');
     });
 
-    it('should log when DEBUG includes firefox-devtools', () => {
-      process.env.DEBUG = 'firefox-devtools';
+    it('should log when DEBUG includes firewatch', () => {
+      process.env.DEBUG = 'firewatch';
       logDebug('Debug message');
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('[firefox-devtools-mcp] DEBUG: Debug message');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[firewatch-mcp] DEBUG: Debug message');
     });
 
-    it('should log when DEBUG includes firefox-devtools with other modules', () => {
-      process.env.DEBUG = 'app,firefox-devtools,other';
+    it('should log when DEBUG includes firewatch with other modules', () => {
+      process.env.DEBUG = 'app,firewatch,other';
       logDebug('Debug message');
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('[firefox-devtools-mcp] DEBUG: Debug message');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[firewatch-mcp] DEBUG: Debug message');
     });
 
-    it('should not log when DEBUG does not include firefox-devtools', () => {
+    it('should not log when DEBUG does not include firewatch', () => {
       process.env.DEBUG = 'other-module';
       logDebug('Debug message');
 
@@ -112,7 +107,7 @@ describe('Logger Utilities', () => {
       logDebug('Debug message', 'arg1', 123);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[firefox-devtools-mcp] DEBUG: Debug message',
+        '[firewatch-mcp] DEBUG: Debug message',
         'arg1',
         123
       );

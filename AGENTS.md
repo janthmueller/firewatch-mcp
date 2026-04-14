@@ -113,7 +113,7 @@
 ## Tools
 
 ### GitHub MCP
-- Default repository: `janthmueller/firefox-devtools-mcp`.
+- Default repository: `janthmueller/firewatch-mcp`.
 - Use GitHub MCP for issue and PR operations (search, read, comment, status checks).
 - Write actions (create/update/close issues, PR comments/reviews, merges) require explicit user approval.
 - Do not perform GitHub write actions unless an explicit draft was shown to the user and approved.
