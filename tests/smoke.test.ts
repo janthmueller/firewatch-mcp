@@ -5,8 +5,17 @@
  * More comprehensive integration tests should be added as the project matures.
  */
 
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { SERVER_NAME, SERVER_VERSION } from '../src/config/constants.js';
+
+type PackageMetadata = {
+  version: string;
+};
+
+const packageMetadata = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+) as PackageMetadata;
 
 describe('Smoke Tests', () => {
   describe('Constants', () => {
@@ -16,7 +25,7 @@ describe('Smoke Tests', () => {
 
     it('should have valid server version', () => {
       expect(SERVER_VERSION).toMatch(/^\d+\.\d+\.\d+/);
-      expect(SERVER_VERSION).toBe('0.9.1');
+      expect(SERVER_VERSION).toBe(packageMetadata.version);
     });
   });
 

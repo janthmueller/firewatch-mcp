@@ -22,6 +22,7 @@
 - Keep functions/modules single-responsibility and focused.
 - Choose an appropriate abstraction level; avoid trivial micro-functions that obscure flow.
 - Avoid tiny one- or two-line helpers; extract only when it improves clarity or reuse.
+- Use Conventional Commits for work intended to merge to `main`; semantic-release derives version bumps and release notes from commit messages.
 
 ### Errors and Fallbacks
 - Raise on missing required data or invalid state.

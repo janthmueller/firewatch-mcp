@@ -2,8 +2,17 @@
  * Unit tests for constants
  */
 
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { SERVER_NAME, SERVER_VERSION } from '../../src/config/constants.js';
+
+type PackageMetadata = {
+  version: string;
+};
+
+const packageMetadata = JSON.parse(
+  readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
+) as PackageMetadata;
 
 describe('Constants', () => {
   describe('SERVER_NAME', () => {
@@ -23,7 +32,7 @@ describe('Constants', () => {
     });
 
     it('should match package.json version', () => {
-      expect(SERVER_VERSION).toBe('0.9.1');
+      expect(SERVER_VERSION).toBe(packageMetadata.version);
     });
 
     it('should be a non-empty string', () => {
