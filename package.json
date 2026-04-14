@@ -1,14 +1,14 @@
 {
   "name": "firewatch-mcp",
   "version": "0.9.1",
-  "description": "Model Context Protocol (MCP) server for Firefox browser automation",
+  "description": "Independent fork of Firefox DevTools MCP for Firefox browser automation",
   "author": "Jan Th Mueller",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "firewatch-mcp": "./dist/index.js"
+    "firewatch-mcp": "dist/index.js"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -95,12 +95,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/janthmueller/firefox-devtools-mcp.git"
+    "url": "git+https://github.com/janthmueller/firewatch-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/janthmueller/firefox-devtools-mcp/issues"
+    "url": "https://github.com/janthmueller/firewatch-mcp/issues"
   },
-  "homepage": "https://github.com/janthmueller/firefox-devtools-mcp#readme",
+  "homepage": "https://github.com/janthmueller/firewatch-mcp#readme",
   "publishConfig": {
     "access": "public"
   }

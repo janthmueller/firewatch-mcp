@@ -2,6 +2,8 @@
 
 Firefox browser automation via WebDriver BiDi. Navigate pages, fill forms, click elements, take screenshots, and monitor console/network activity.
 
+This plugin is part of Firewatch MCP, an independent fork of Mozilla's Firefox DevTools MCP.
+
 ## What's Included
 
 This plugin provides:
@@ -78,5 +80,6 @@ The plugin works automatically when you ask about browser tasks:
 
 ## Links
 
-- [Repository](https://github.com/janthmueller/firefox-devtools-mcp)
+- [Repository](https://github.com/janthmueller/firewatch-mcp)
 - [npm](https://www.npmjs.com/package/firewatch-mcp)
+- [Upstream](https://github.com/mozilla/firefox-devtools-mcp)

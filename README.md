@@ -1,15 +1,17 @@
 # Firewatch MCP
 
 [![npm version](https://badge.fury.io/js/firewatch-mcp.svg)](https://www.npmjs.com/package/firewatch-mcp)
-[![CI](https://github.com/janthmueller/firefox-devtools-mcp/workflows/CI/badge.svg)](https://github.com/janthmueller/firefox-devtools-mcp/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/janthmueller/firefox-devtools-mcp/branch/main/graph/badge.svg)](https://codecov.io/gh/janthmueller/firefox-devtools-mcp)
+[![CI](https://github.com/janthmueller/firewatch-mcp/workflows/CI/badge.svg)](https://github.com/janthmueller/firewatch-mcp/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/janthmueller/firewatch-mcp/branch/main/graph/badge.svg)](https://codecov.io/gh/janthmueller/firewatch-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <a href="https://glama.ai/mcp/servers/firewatch-mcp"><img src="https://glama.ai/mcp/servers/firewatch-mcp/badge" height="223" alt="Glama"></a>
 
 Model Context Protocol server for automating Firefox via WebDriver BiDi (through Selenium WebDriver). Firewatch MCP works with Claude Code, Claude Desktop, Cursor, Cline and other MCP clients.
 
-Repository: https://github.com/janthmueller/firefox-devtools-mcp
+Repository: https://github.com/janthmueller/firewatch-mcp
+
+> **Independent fork:** Firewatch MCP is an independent fork of Mozilla's Firefox DevTools MCP. It is not an official Mozilla product and is published separately under the `firewatch-mcp` package name.
 
 > **Note**: This MCP server requires a local Firefox browser installation and cannot run on cloud hosting services like glama.ai. Use `npx firewatch-mcp@latest` to run locally, or use Docker with the provided Dockerfile.
 
@@ -224,12 +226,25 @@ See [docs/testing.md](docs/testing.md) for full details on running specific test
 
 ## Issues and Contributing
 
-Issues are tracked on [Bugzilla](https://bugzilla.mozilla.org) under **product: Developer Infrastructure**, **component: AI for Development**.
+Firewatch MCP issues are tracked in this repository:
 
-- [File a new issue](https://bugzilla.mozilla.org/enter_bug.cgi?format=__default__&blocked=2026717&product=Developer%20Infrastructure&component=AI%20for%20Development)
+- [Open a Firewatch MCP issue](https://github.com/janthmueller/firewatch-mcp/issues)
+
+Upstream Firefox DevTools MCP issues are tracked on [Bugzilla](https://bugzilla.mozilla.org) under **product: Developer Infrastructure**, **component: AI for Development**.
+
+- [File a new upstream issue](https://bugzilla.mozilla.org/enter_bug.cgi?format=__default__&blocked=2026717&product=Developer%20Infrastructure&component=AI%20for%20Development)
 - [Meta bug (tracks upstream firefox-devtools-mcp issues)](https://bugzilla.mozilla.org/show_bug.cgi?id=2026717)
 
 For questions and discussion about the upstream project, join the [#firefox-devtools-mcp Matrix room](https://chat.mozilla.org/#/room/#firefox-devtools-mcp:mozilla.org).
+
+## Upstream
+
+Firewatch MCP is derived from Mozilla's Firefox DevTools MCP:
+
+- Upstream repository: https://github.com/mozilla/firefox-devtools-mcp
+- Firewatch MCP repository: https://github.com/janthmueller/firewatch-mcp
+
+Some historical changelog entries, test fixtures, or issue references may still point to the upstream project where that context is part of the project history.
 
 ## Author
 
