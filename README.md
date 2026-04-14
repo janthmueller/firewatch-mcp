@@ -7,11 +7,18 @@
 
 <a href="https://glama.ai/mcp/servers/firewatch-mcp"><img src="https://glama.ai/mcp/servers/firewatch-mcp/badge" height="223" alt="Glama"></a>
 
-Model Context Protocol server for automating Firefox via WebDriver BiDi (through Selenium WebDriver). Firewatch MCP works with Claude Code, Claude Desktop, Cursor, Cline and other MCP clients.
+Firewatch MCP is a Model Context Protocol server for automating Firefox via WebDriver BiDi (through Selenium WebDriver). It works with Claude Code, Claude Desktop, Cursor, Cline and other MCP clients.
 
 Repository: https://github.com/janthmueller/firewatch-mcp
 
 > **Independent fork:** Firewatch MCP is an independent fork of Mozilla's Firefox DevTools MCP. It is not an official Mozilla product and is published separately under the `firewatch-mcp` package name.
+
+Firewatch MCP builds on the upstream project with a few practical additions:
+
+- `extract_text` for rendered or DOM text extraction from the full page or a scoped region
+- packaged npm distribution under `firewatch-mcp`
+- independent Firewatch plugin/config surface for MCP clients
+- fork-specific improvements around Firefox automation, page inspection, and extraction workflows
 
 > **Note**: This MCP server requires a local Firefox browser installation and cannot run on cloud hosting services like glama.ai. Use `npx firewatch-mcp@latest` to run locally, or use Docker with the provided Dockerfile.
 
@@ -215,14 +222,6 @@ See [docs/testing.md](docs/testing.md) for full details on running specific test
     ```
 
     Note: The path above is an example. You must adjust it to match the actual location of `npx` on your machine. Depending on your setup, the file extension might be `.cmd`, `.bat`, or `.exe` rather than `.ps1`. Also, ensure you use double backslashes (`\\`) as path delimiters, as required by the JSON format.
-
-## Versioning
-
-- Pre‑1.0 API: versions start at `0.x`. Use `@latest` with npx for the newest release.
-
-## CI and Release
-
-- GitHub Actions for CI, Release, and npm publish are included. See docs/ci-and-release.md for details and required secrets.
 
 ## Issues and Contributing
 
