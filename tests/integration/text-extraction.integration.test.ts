@@ -70,4 +70,53 @@ describe('Text Extraction Integration Tests', () => {
 
     expect(text).toBe('Simple Test Page');
   }, 10000);
+
+  it('should extract DOM text including hidden content when source is dom', async () => {
+    const fixturePath = `file://${fixturesPath}/visibility.html`;
+    await firefox.navigate(fixturePath);
+    await waitForPageLoad();
+
+    const text = await firefox.extractText({
+      source: 'dom',
+    });
+
+    expect(text).toContain('Hidden Text');
+    expect(text).toContain('Visible Text');
+  }, 10000);
+
+  it('should reject invalid selector syntax', async () => {
+    const fixturePath = `file://${fixturesPath}/simple.html`;
+    await firefox.navigate(fixturePath);
+    await waitForPageLoad();
+
+    await expect(
+      firefox.extractText({
+        scope: 'selector',
+        selector: '#description:has(',
+      })
+    ).rejects.toThrow(/Invalid selector syntax/);
+  }, 10000);
+
+  it('should reject stale UIDs after navigation', async () => {
+    const fixturePath = `file://${fixturesPath}/simple.html`;
+    await firefox.navigate(fixturePath);
+    await waitForPageLoad();
+
+    const snapshot = await firefox.takeSnapshot();
+    const titleUid = snapshot.json.uidMap.find(
+      (entry) => entry.css.includes('#title') || entry.css.includes('id="title"')
+    );
+
+    expect(titleUid).toBeDefined();
+
+    await firefox.navigate(`file://${fixturesPath}/visibility.html`);
+    await waitForPageLoad();
+
+    await expect(
+      firefox.extractText({
+        scope: 'uid',
+        uid: titleUid!.uid,
+      })
+    ).rejects.toThrow(/stale snapshot|UID not found/);
+  }, 10000);
 });
