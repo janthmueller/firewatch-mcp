@@ -43,12 +43,12 @@ export const takeSnapshotTool = {
       collectorMaxTextLength: {
         anyOf: [{ type: 'number' }, { type: 'null' }],
         description:
-          'Per-node text cap during snapshot collection. Omit to use default, set null for no cap.',
+          'Per-node text cap during snapshot collection. Omit to use the default compact preview behavior, set null for uncapped text.',
       },
       formatterMaxTextLength: {
         anyOf: [{ type: 'number' }, { type: 'null' }],
         description:
-          'Per-node text cap when formatting snapshot output. Omit to use default, set null for no cap.',
+          'Per-node text cap when formatting snapshot output. Omit to use the default compact preview behavior, set null for uncapped text.',
       },
     },
   },
