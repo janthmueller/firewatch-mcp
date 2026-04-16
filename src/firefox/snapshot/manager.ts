@@ -139,10 +139,13 @@ export class SnapshotManager {
       uidMap: result.uidMap,
     };
 
+    const formatOptions =
+      options?.formatterMaxTextLength === undefined
+        ? {}
+        : { maxTextLength: options.formatterMaxTextLength };
+
     const snapshot: Snapshot = {
-      text: formatSnapshotTree(result.tree, 0, {
-        maxTextLength: options?.formatterMaxTextLength,
-      }),
+      text: formatSnapshotTree(result.tree, 0, formatOptions),
       json: snapshotJson,
     };
 
