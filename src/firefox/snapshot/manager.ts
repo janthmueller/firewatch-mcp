@@ -18,6 +18,8 @@ import { UidResolver } from './resolver.js';
 export interface SnapshotOptions {
   includeAll?: boolean;
   selector?: string;
+  collectorMaxTextLength?: number | null;
+  formatterMaxTextLength?: number | null;
 }
 
 /**
@@ -138,7 +140,9 @@ export class SnapshotManager {
     };
 
     const snapshot: Snapshot = {
-      text: formatSnapshotTree(result.tree),
+      text: formatSnapshotTree(result.tree, 0, {
+        maxTextLength: options?.formatterMaxTextLength,
+      }),
       json: snapshotJson,
     };
 
