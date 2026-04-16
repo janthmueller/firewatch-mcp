@@ -11,7 +11,8 @@ const DEFAULT_SNAPSHOT_LINES = 100;
 // Tool definitions
 export const takeSnapshotTool = {
   name: 'take_snapshot',
-  description: 'Capture DOM snapshot with stable UIDs. Retake after navigation.',
+  description:
+    'Capture a DOM snapshot with stable UIDs. Omit uid to create a fresh document-root snapshot. Provide uid to zoom into a subtree while reusing the current snapshot UID space. Retake after navigation.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -43,7 +44,7 @@ export const takeSnapshotTool = {
       uid: {
         type: 'string',
         description:
-          'Optional UID to use as the subtree root. Omit for the document root. maxDepth becomes relative to this root.',
+          'Optional UID to use as the subtree root. Omit to create a fresh document-root snapshot. When provided, maxDepth becomes relative to this root and the current snapshot UID space is reused. After navigation, old UIDs become stale and a fresh root snapshot is required.',
       },
       collectorMaxTextLength: {
         anyOf: [{ type: 'number' }, { type: 'null' }],
