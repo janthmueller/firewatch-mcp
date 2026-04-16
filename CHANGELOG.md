@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/janthmueller/firewatch-mcp/compare/v1.2.0...v1.3.0) (2026-04-16)
+
+
+### Features
+
+* support uid-rooted snapshots ([5015a8d](https://github.com/janthmueller/firewatch-mcp/commit/5015a8dcd5f76313aa1268ac4871d3be3954ea54))
+
 # [1.2.0](https://github.com/janthmueller/firewatch-mcp/compare/v1.1.0...v1.2.0) (2026-04-16)
 
 
