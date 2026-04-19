@@ -1,3 +1,17 @@
+# [1.4.0](https://github.com/janthmueller/firewatch-mcp/compare/v1.3.1...v1.4.0) (2026-04-19)
+
+
+### Bug Fixes
+
+* bound Firefox test teardown time ([cbf6562](https://github.com/janthmueller/firewatch-mcp/commit/cbf65627d53f484c4113505ef0e0d5808af938d2))
+* improve snapshot error diagnostics ([d3f9ad8](https://github.com/janthmueller/firewatch-mcp/commit/d3f9ad8eb62c4bed3fc5a793b97744908f3b2469))
+* remove global test worker firefox cleanup ([f53ff5b](https://github.com/janthmueller/firewatch-mcp/commit/f53ff5b9373e68de48aef4a5e7671db7f5828663))
+
+
+### Features
+
+* scope page and snapshot state per workspace ([07a990a](https://github.com/janthmueller/firewatch-mcp/commit/07a990aa10dbd96eecba98deb2435020430d622c))
+
 ## [1.3.1](https://github.com/janthmueller/firewatch-mcp/compare/v1.3.0...v1.3.1) (2026-04-16)
 
 
