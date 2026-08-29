@@ -84,22 +84,22 @@ be treated as permanently waived.
 
 ## Repository Settings Snapshot
 
-A read-only GitHub API audit on 2026-08-29 found:
+A GitHub API settings audit and hardening pass on 2026-08-29 established:
 
 - Secret scanning and secret-scanning push protection are enabled.
-- Dependabot vulnerability alerts and automatic security updates are disabled.
+- Dependabot vulnerability alerts and automatic security updates are enabled.
 - Neither `main` nor `firewatch-v2` has branch protection, and the repository
   has no rulesets.
 - CodeQL default setup is not configured, so the repository workflow provides
   advanced setup without conflicting with a server-managed scan.
 
-These settings are not changed by this branch. Until branch and release-tag
-rules are configured, repository write access is sufficient to push changes or
-matching release tags without a required review gate.
+The Dependabot settings were enabled through the GitHub API and are not encoded
+in this repository. Until branch and release-tag rules are configured,
+repository write access is sufficient to push changes or matching release tags
+without a required review gate.
 
 ## Remaining Work
 
-- Enable Dependabot vulnerability alerts and automatic security updates.
 - Add branch and release-tag rulesets with required reviews and status checks.
 - Define and test an explicit npm install-script allowlist. A clean npm 11
   install currently identifies `esbuild` and `geckodriver` lifecycle scripts.
