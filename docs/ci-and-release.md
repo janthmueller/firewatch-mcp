@@ -1,51 +1,62 @@
 # CI and Release
 
-This project ships with ready-to-use GitHub Actions for CI, release, and npm publishing.
+## Pull Request Gates
 
-Workflows
-- CI (.github/workflows/ci.yml)
-  - Triggers on push (main, develop) and PRs.
-  - Matrix: Node 20 and 22.
-  - Steps: install → lint → format check → typecheck → test → build.
-  - Optional: uploads coverage to Codecov if `coverage/lcov.info` exists and `CODECOV_TOKEN` is set.
-  - Uploads the `dist/` artifact (Node 20 job) for quick download.
+- `pr-check.yml` installs the lockfile, audits production dependencies, and runs
+  lint, formatting, type checks, unit tests, and a build.
+- `dependency-review.yml` rejects dependency changes with new high or critical
+  advisories.
+- `codeql.yml` analyzes JavaScript, TypeScript, and GitHub Actions workflows.
 
-- PR Check (.github/workflows/pr-check.yml)
-  - Fast checks on PR open/update: lint, format check, typecheck.
+PR Check and Dependency Review use read-only permissions. CodeQL additionally
+receives `security-events: write` so it can upload analysis results. The jobs
+run with the `pull_request` event and do not persist checkout credentials.
 
-- Version Check (.github/workflows/version-check.yml)
-  - On tag push `v*`: compares the tag version with `package.json`.
-  - Fails if they differ (bump package.json before tagging).
+## Push CI
 
-- Release (.github/workflows/release.yml)
-  - On tag push `v*`: runs tests, builds `dist/`, creates a GitHub Release with a tarball of `dist` + metadata.
+`ci.yml` runs on pushes to `main`, `develop`, and `firewatch-v2` with Node.js 20
+and 22. It audits production dependencies, runs all static checks, builds the
+server, runs tests with coverage, and uploads the Node.js 20 build artifact.
+Both workflows also smoke-test the public and privileged-context npm package
+archives. Codecov upload is non-blocking.
 
-- Publish (.github/workflows/publish.yml)
-  - On GitHub Release published or on tag push `v*.*.*` (and via manual dispatch): builds and publishes to npm with provenance.
-  - Requires `NPM_TOKEN` repository secret.
+Dependabot checks npm packages and SHA-pinned GitHub Actions weekly. Its target
+branch is `firewatch-v2` during v2 development and must be changed to `main`
+when v2 becomes the default branch.
 
-Secrets
-- `NPM_TOKEN`: npm access token with publish rights to the package name (`firefox-devtools-mcp`).
-- `CODECOV_TOKEN` (optional): used by Codecov upload step (CI). The step is skipped if the token or coverage file is missing.
+## Release Boundary
 
-Release flow
-1) Bump version in `package.json` (keep 0.x until API is stable):
-   - `npm version patch` (or minor)
-   - Commit the change
-2) Create and push the tag (must match package.json):
-   - `git tag v0.2.0 && git push origin v0.2.0`
-3) The `version-check` job validates the tag vs. package.json.
-4) `release` creates a GitHub Release; `publish` publishes to npm.
+`release.yml` starts when a `v*` tag is pushed. Its read-only build job verifies
+that the tag matches `package.json`, audits production dependencies, builds,
+tests, and creates the tar and MCPB assets. A separate `contents: write` job
+downloads those artifacts and creates the GitHub Release without checking out
+or executing project code.
 
-Windows Integration Tests
-- On Windows, vitest has known issues with process forking when running integration tests that spawn Firefox.
-- See: https://github.com/mozilla/firefox-devtools-mcp/issues/33
-- To work around this, we use a separate test runner (`scripts/run-integration-tests-windows.mjs`) that runs integration tests directly via Node.js without vitest's process isolation.
-- The CI workflow detects Windows and automatically uses this runner instead of vitest for integration tests.
-- Unit tests still run via vitest on all platforms.
+Publishing starts from the resulting `release.published` event. The read-only
+build job in `publish.yml` validates the tag, runs checks and unit tests, builds
+both npm variants, and packs fixed tarball artifacts. A separate OIDC job
+downloads the tarballs and publishes them with provenance and
+`--ignore-scripts`. No dependency install or repository script runs with npm
+publish authority.
 
-Notes
-- If you want Codecov upload to run, switch CI test step to `npm run test:coverage` or generate `coverage/lcov.info`.
-- Provenance is enabled for npm publish (Node 20+).
-- Use `@latest` in README examples to encourage npx usage.
+The two npm packages must each configure `publish.yml` as their trusted GitHub
+Actions publisher. No long-lived `NPM_TOKEN` is used.
 
+## Release Process
+
+1. Set the intended version in `package.json` and update `package-lock.json`.
+2. Commit the release change and create the matching tag, for example `v0.10.2`.
+3. Push the tag. The release workflow rejects a tag that does not match the
+   package version.
+4. The GitHub Release is created from reviewed artifacts.
+5. Publishing runs once from the release event and publishes both npm packages.
+
+`CODECOV_TOKEN` is the only workflow secret referenced by CI, and it is
+optional. npm publishing uses GitHub OIDC instead of a repository secret.
+
+## Windows Integration Tests
+
+Vitest has known process-forking problems for integration tests that spawn
+Firefox on Windows. `scripts/run-integration-tests-windows.mjs` provides a
+separate runner for that environment. Unit tests continue to run through
+Vitest.

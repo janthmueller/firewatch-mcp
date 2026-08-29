@@ -1,0 +1,28 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: firewatch-v2
+    schedule:
+      interval: weekly
+      day: monday
+      time: '04:00'
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 10
+    labels:
+      - type:security
+      - area:infra
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: firewatch-v2
+    schedule:
+      interval: weekly
+      day: monday
+      time: '04:30'
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 10
+    labels:
+      - type:security
+      - area:infra

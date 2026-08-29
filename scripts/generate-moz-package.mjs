@@ -14,14 +14,13 @@ const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 const moz = {
   ...pkg,
   name: '@mozilla/firefox-devtools-mcp-moz',
-  description:
-    pkg.description + ' (moz build with privileged context support)',
+  description: pkg.description + ' (moz build with privileged context support)',
   main: 'dist.moz/index.js',
   types: 'dist.moz/index.d.ts',
   bin: {
     'firefox-devtools-mcp-moz': './dist.moz/index.js',
   },
-  files: ['dist.moz', 'README.md', 'LICENSE', 'scripts', 'plugins'],
+  files: ['dist.moz', 'README.md', 'LICENSE-MIT', 'LICENSE-APACHE', 'scripts', 'plugins'],
   publishConfig: {
     access: 'public',
   },
