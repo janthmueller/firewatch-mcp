@@ -12,6 +12,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { createTestFirefox, closeFirefox, waitFor } from '../helpers/firefox.js';
 import type { FirefoxClient } from '@/firefox/index.js';
+import type { PageInfo } from '@/firefox/types.js';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -154,7 +155,10 @@ describe('BiDi Navigation Integration Tests', () => {
   }, 15000);
 
   it('should create new page with moz-extension:// URL without hanging', async () => {
-    await firefox.createNewPage(extensionUrl);
+    const created: PageInfo = await firefox.createNewPage(extensionUrl, {
+      userContext: 'default',
+      background: false,
+    });
 
     // Poll for the page URL since wait:none returns before the page loads
     const driver = firefox.getDriver();
@@ -166,18 +170,6 @@ describe('BiDi Navigation Integration Tests', () => {
     const title = await driver.getTitle();
     expect(title).toBe('MCP Test Extension');
 
-    // Clean up the created tab
-    try {
-      const handles = await driver.getAllWindowHandles();
-      if (handles.length > 1) {
-        await driver.close();
-        const remaining = await driver.getAllWindowHandles();
-        if (remaining.length > 0) {
-          await driver.switchTo().window(remaining[0]);
-        }
-      }
-    } catch {
-      // Best-effort cleanup
-    }
+    await firefox.closePage(created.contextId);
   }, 15000);
 });

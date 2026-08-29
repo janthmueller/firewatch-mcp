@@ -3,10 +3,10 @@
 ## Active Work
 
 - Umbrella issue: [#31](https://github.com/janthmueller/firewatch-mcp/issues/31)
-- Last completed issue: [#32](https://github.com/janthmueller/firewatch-mcp/issues/32)
+- Last completed issue: [#41](https://github.com/janthmueller/firewatch-mcp/issues/41)
 - Integration branch: `firewatch-v2`
 - Legacy branch: `legacy-v1`
-- Current phase: browser context identity planning
+- Current phase: centralized authorization planning
 
 ## Baselines
 
@@ -24,7 +24,7 @@
 | Inventory fork features  | Complete | Decisions are recorded in `docs/v2-feature-inventory.md`.                                                                                                                           |
 | Supply-chain baseline    | Complete | The initial controls, gaps, and advisory snapshot are documented.                                                                                                                   |
 | Supply-chain hardening   | Complete | PRs #33 and #40 implement production audit gates, immutable Actions, dependency review, CodeQL, release privilege separation, and the required default-branch Dependabot bootstrap. |
-| Browser context identity | Pending  | Expose stable `contextId` and `userContext`; stop relying on tab indexes for policy.                                                                                                |
+| Browser context identity | Complete | PR #42 exposes stable `contextId` and `userContext`, removes index-based targeting, and adds typed MCP output.                                                                      |
 | Central authorization    | Pending  | Trusted startup principal, typed policy, centralized enforcement.                                                                                                                   |
 | Extraction and snapshots | Pending  | Restore only approved deltas after authorization exists.                                                                                                                            |
 | Zen mapping              | Pending  | Map labels one-to-one to Firefox user contexts.                                                                                                                                     |
@@ -33,10 +33,11 @@
 
 ## Next Work
 
-1. Define and approve a focused issue for stable browser `contextId` and
-   `userContext` identity.
-2. Design and expose browser resource identity without relying on tab indexes.
-3. Build the centralized policy boundary before restoring extraction features.
+1. Define and approve a focused issue for centralized container-scoped
+   authorization.
+2. Design the trusted startup principal, typed policy contract, and centralized
+   enforcement boundary.
+3. Add negative authorization tests before restoring extraction features.
 
 Each implementation phase requires a focused issue and dedicated branch before
 code changes begin.

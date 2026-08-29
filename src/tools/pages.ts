@@ -2,9 +2,15 @@
  * Page navigation and management tools for MCP
  */
 
-import { successResponse, previewExcerpt, truncationFooter } from '../utils/response-helpers.js';
+import {
+  successResponse,
+  structuredResponse,
+  previewExcerpt,
+  truncationFooter,
+} from '../utils/response-helpers.js';
 import { saveOutput } from '../utils/save-output.js';
 import { READINESS_STATES, isReadinessState, type ReadinessState } from '../firefox/pages.js';
+import type { ClosePageResult, PageInfo, UserContextInfo } from '../firefox/types.js';
 import {
   defineModule,
   defineToolHandler,
@@ -26,6 +32,68 @@ const waitSchema = {
   enum: [...READINESS_STATES],
   description: WAIT_DESCRIPTION,
 } satisfies JsonSchemaProperty;
+
+const pageInfoSchema = {
+  type: 'object',
+  properties: {
+    contextId: {
+      type: 'string',
+      description: 'Stable WebDriver BiDi browsing context identifier',
+    },
+    userContext: {
+      type: 'string',
+      description: 'Firefox user context (container) identifier',
+    },
+    url: { type: 'string' },
+    title: { type: 'string' },
+    isCurrent: {
+      type: 'boolean',
+      description: 'Whether this is the MCP server current automation context',
+    },
+  },
+  required: ['contextId', 'userContext', 'url', 'title', 'isCurrent'],
+} satisfies JsonSchemaProperty;
+
+const userContextInfoSchema = {
+  type: 'object',
+  properties: {
+    userContext: {
+      type: 'string',
+      description: 'Opaque Firefox user context (container) identifier',
+    },
+  },
+  required: ['userContext'],
+} satisfies JsonSchemaProperty;
+
+function parseArguments(value: unknown): Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Tool arguments must be an object');
+  }
+  return value as Record<string, unknown>;
+}
+
+function requireStringArgument(argumentsObject: Record<string, unknown>, name: string): string {
+  const value: unknown = argumentsObject[name];
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`${name} parameter is required and must be a non-empty string`);
+  }
+  return value;
+}
+
+function optionalBooleanArgument(
+  argumentsObject: Record<string, unknown>,
+  name: string,
+  defaultValue: boolean
+): boolean {
+  const value: unknown = argumentsObject[name];
+  if (value === undefined) {
+    return defaultValue;
+  }
+  if (typeof value !== 'boolean') {
+    throw new Error(`${name} parameter must be a boolean`);
+  }
+  return value;
+}
 
 /**
  * Validate the optional `wait` argument.
@@ -53,7 +121,8 @@ function waitSuffix(wait: ReadinessState | undefined): string {
 // Tool definitions
 export const listPagesTool = {
   name: 'list_pages',
-  description: 'List open tabs (index, title, URL). Selected tab is marked.',
+  description:
+    'List top-level pages with stable contextId, Firefox userContext, URL, title, and current automation state. This inspects pages without activating tabs. Use contextId for subsequent page operations; list position is not an identifier.',
   annotations: {
     readOnlyHint: true,
   },
@@ -61,11 +130,45 @@ export const listPagesTool = {
     type: 'object',
     properties: {},
   },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      pages: {
+        type: 'array',
+        items: pageInfoSchema,
+      },
+    },
+    required: ['pages'],
+  },
+} satisfies ToolDefinition;
+
+export const listUserContextsTool = {
+  name: 'list_user_contexts',
+  description:
+    'List Firefox userContext identifiers available for page creation. The default Firefox container is "default"; other values identify isolated Firefox containers.',
+  annotations: {
+    readOnlyHint: true,
+  },
+  inputSchema: {
+    type: 'object',
+    properties: {},
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      userContexts: {
+        type: 'array',
+        items: userContextInfoSchema,
+      },
+    },
+    required: ['userContexts'],
+  },
 } satisfies ToolDefinition;
 
 export const newPageTool = {
   name: 'new_page',
-  description: 'Open new tab at URL. Returns tab index.',
+  description:
+    'Open a tab at URL in an explicitly selected Firefox userContext. Call list_user_contexts first. Returns stable page identity. background defaults to false, which activates the tab; pass true to avoid changing the current automation context or visible tab.',
   annotations: {
     readOnlyHint: false,
   },
@@ -76,9 +179,25 @@ export const newPageTool = {
         type: 'string',
         description: 'Target URL',
       },
+      userContext: {
+        type: 'string',
+        description: 'Firefox userContext from list_user_contexts, including "default"',
+      },
+      background: {
+        type: 'boolean',
+        description:
+          'Create without activating or selecting the tab. Defaults to false according to WebDriver BiDi.',
+      },
       wait: waitSchema,
     },
-    required: ['url'],
+    required: ['url', 'userContext'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      page: pageInfoSchema,
+    },
+    required: ['page'],
   },
 } satisfies ToolDefinition;
 
@@ -103,45 +222,58 @@ export const navigatePageTool = {
 
 export const selectPageTool = {
   name: 'select_page',
-  description: 'Select active tab by index, URL, or title. Index takes precedence.',
+  description:
+    'Select a live page by stable contextId. This changes the MCP automation context and activates the corresponding visible browser tab. Obtain contextId from list_pages.',
   annotations: {
     readOnlyHint: false,
   },
   inputSchema: {
     type: 'object',
     properties: {
-      pageIdx: {
-        type: 'number',
-        description: 'Tab index (0-based, most reliable)',
-      },
-      url: {
+      contextId: {
         type: 'string',
-        description: 'URL substring (case-insensitive)',
-      },
-      title: {
-        type: 'string',
-        description: 'Title substring (case-insensitive)',
+        description: 'Stable contextId returned by list_pages',
       },
     },
-    required: [],
+    required: ['contextId'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      page: pageInfoSchema,
+    },
+    required: ['page'],
   },
 } satisfies ToolDefinition;
 
 export const closePageTool = {
   name: 'close_page',
-  description: 'Close tab by index.',
+  description:
+    'Close a live page by stable contextId. A non-current page is closed without selecting it first. Closing the final page is rejected because browser/session behavior is not portable.',
   annotations: {
     readOnlyHint: false,
   },
   inputSchema: {
     type: 'object',
     properties: {
-      pageIdx: {
-        type: 'number',
-        description: 'Tab index to close',
+      contextId: {
+        type: 'string',
+        description: 'Stable contextId returned by list_pages',
       },
     },
-    required: ['pageIdx'],
+    required: ['contextId'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      closedContextId: {
+        type: 'string',
+      },
+      currentContextId: {
+        type: ['string', 'null'],
+      },
+    },
+    required: ['closedContextId', 'currentContextId'],
   },
 } satisfies ToolDefinition;
 
@@ -177,20 +309,26 @@ export const getPageTextTool = {
 /**
  * Format page list compactly
  */
-function formatPageList(
-  tabs: Array<{ title?: string; url?: string }>,
-  selectedIdx: number
-): string {
-  if (tabs.length === 0) {
+function formatPageList(pages: readonly PageInfo[]): string {
+  if (pages.length === 0) {
     return 'No pages';
   }
-  const lines: string[] = [`${tabs.length} pages (selected: ${selectedIdx})`];
-  for (const tab of tabs) {
-    const idx = tabs.indexOf(tab);
-    const marker = idx === selectedIdx ? '>' : ' ';
-    const title = (tab.title || 'Untitled').substring(0, 40);
-    const url = (tab.url || 'URL unavailable').substring(0, 200);
-    lines.push(`${marker}[${idx}] ${title} (${url})`);
+  const lines: string[] = [`${pages.length} pages`];
+  for (const page of pages) {
+    const marker: string = page.isCurrent ? '>' : ' ';
+    const title: string = page.title.length > 0 ? page.title.substring(0, 80) : '(untitled)';
+    const url: string = page.url.substring(0, 200);
+    lines.push(
+      `${marker} ${title} (${url}) [contextId=${page.contextId}, userContext=${page.userContext}]`
+    );
+  }
+  return lines.join('\n');
+}
+
+function formatUserContextList(userContexts: readonly UserContextInfo[]): string {
+  const lines: string[] = [`${userContexts.length} user contexts`];
+  for (const context of userContexts) {
+    lines.push(`- ${context.userContext}`);
   }
   return lines.join('\n');
 }
@@ -202,135 +340,85 @@ export const handleListPages = defineToolHandler(async function handleListPages(
   const { getFirefox } = await import('../index.js');
   const firefox = await getFirefox();
 
-  await firefox.refreshTabs();
-  const tabs = firefox.getTabs();
-  const selectedIdx = firefox.getSelectedTabIdx();
+  const pages: PageInfo[] = await firefox.listPages();
 
-  return successResponse(formatPageList(tabs, selectedIdx));
+  return structuredResponse(formatPageList(pages), { pages });
+});
+
+export const handleListUserContexts = defineToolHandler(async function handleListUserContexts(
+  _args: unknown
+): Promise<McpToolResponse> {
+  const { getFirefox } = await import('../index.js');
+  const firefox = await getFirefox();
+
+  const userContexts: UserContextInfo[] = await firefox.listUserContexts();
+  return structuredResponse(formatUserContextList(userContexts), { userContexts });
 });
 
 export const handleNewPage = defineToolHandler(async function handleNewPage(
   args: unknown
 ): Promise<McpToolResponse> {
-  const { url, wait } = args as { url: string; wait?: unknown };
-
-  if (!url || typeof url !== 'string') {
-    throw new Error('url parameter is required and must be a string');
-  }
-
-  const waitFor = parseWait(wait);
+  const argumentsObject: Record<string, unknown> = parseArguments(args);
+  const url: string = requireStringArgument(argumentsObject, 'url');
+  const userContext: string = requireStringArgument(argumentsObject, 'userContext');
+  const background: boolean = optionalBooleanArgument(argumentsObject, 'background', false);
+  const waitFor: ReadinessState | undefined = parseWait(argumentsObject.wait);
 
   const { getFirefox } = await import('../index.js');
   const firefox = await getFirefox();
 
-  const newIdx = await firefox.createNewPage(url, waitFor);
+  const page: PageInfo = await firefox.createNewPage(url, { userContext, background }, waitFor);
 
-  return successResponse(`new page [${newIdx}] → ${url}${waitSuffix(waitFor)}`);
+  return structuredResponse(
+    `new page ${page.contextId} in user context ${page.userContext} → ${url}${waitSuffix(waitFor)}`,
+    { page }
+  );
 });
 
 export const handleNavigatePage = defineToolHandler(async function handleNavigatePage(
   args: unknown
 ): Promise<McpToolResponse> {
-  const { url, wait } = args as { url: string; wait?: unknown };
-
-  if (!url || typeof url !== 'string') {
-    throw new Error('url parameter is required and must be a string');
-  }
-
-  const waitFor = parseWait(wait);
+  const argumentsObject: Record<string, unknown> = parseArguments(args);
+  const url: string = requireStringArgument(argumentsObject, 'url');
+  const waitFor: ReadinessState | undefined = parseWait(argumentsObject.wait);
 
   const { getFirefox } = await import('../index.js');
   const firefox = await getFirefox();
 
-  // Refresh tabs to get latest list
-  await firefox.refreshTabs();
-  const tabs = firefox.getTabs();
-  const selectedIdx = firefox.getSelectedTabIdx();
-  const page = tabs[selectedIdx];
-
-  if (!page) {
+  const contextId: string | null = firefox.getCurrentContextId();
+  if (!contextId) {
     throw new Error('No page selected');
   }
 
   await firefox.navigate(url, waitFor);
 
-  return successResponse(`[${selectedIdx}] → ${url}${waitSuffix(waitFor)}`);
+  return successResponse(`${contextId} → ${url}${waitSuffix(waitFor)}`);
 });
 
 export const handleSelectPage = defineToolHandler(async function handleSelectPage(
   args: unknown
 ): Promise<McpToolResponse> {
-  const { pageIdx, url, title } = args as { pageIdx?: number; url?: string; title?: string };
+  const argumentsObject: Record<string, unknown> = parseArguments(args);
+  const contextId: string = requireStringArgument(argumentsObject, 'contextId');
 
   const { getFirefox } = await import('../index.js');
   const firefox = await getFirefox();
 
-  // Refresh tabs to get latest list
-  await firefox.refreshTabs();
-  const tabs = firefox.getTabs();
-
-  let selectedIdx: number;
-
-  // Priority 1: Select by index
-  if (typeof pageIdx === 'number') {
-    selectedIdx = pageIdx;
-  }
-  // Priority 2: Select by URL pattern
-  else if (url && typeof url === 'string') {
-    const urlLower = url.toLowerCase();
-    const foundIdx = tabs.findIndex((tab) => tab.url?.toLowerCase().includes(urlLower));
-    if (foundIdx === -1) {
-      throw new Error(`No page matching URL "${url}"`);
-    }
-    selectedIdx = foundIdx;
-  }
-  // Priority 3: Select by title pattern
-  else if (title && typeof title === 'string') {
-    const titleLower = title.toLowerCase();
-    const foundIdx = tabs.findIndex((tab) => tab.title?.toLowerCase().includes(titleLower));
-    if (foundIdx === -1) {
-      throw new Error(`No page matching title "${title}"`);
-    }
-    selectedIdx = foundIdx;
-  } else {
-    throw new Error('Provide pageIdx, url, or title');
-  }
-
-  // Validate the selected index
-  if (!tabs[selectedIdx]) {
-    throw new Error(`Page [${selectedIdx}] not found`);
-  }
-
-  // Select the tab
-  await firefox.selectTab(selectedIdx);
-
-  return successResponse(`selected [${selectedIdx}]`);
+  const page: PageInfo = await firefox.selectPage(contextId);
+  return structuredResponse(`selected ${contextId}`, { page });
 });
 
 export const handleClosePage = defineToolHandler(async function handleClosePage(
   args: unknown
 ): Promise<McpToolResponse> {
-  const { pageIdx } = args as { pageIdx: number };
-
-  if (typeof pageIdx !== 'number') {
-    throw new Error('pageIdx parameter is required and must be a number');
-  }
+  const argumentsObject: Record<string, unknown> = parseArguments(args);
+  const contextId: string = requireStringArgument(argumentsObject, 'contextId');
 
   const { getFirefox } = await import('../index.js');
   const firefox = await getFirefox();
 
-  // Refresh tabs to get latest list
-  await firefox.refreshTabs();
-  const tabs = firefox.getTabs();
-  const pageToClose = tabs[pageIdx];
-
-  if (!pageToClose) {
-    throw new Error(`Page with index ${pageIdx} not found`);
-  }
-
-  await firefox.closeTab(pageIdx);
-
-  return successResponse(`closed [${pageIdx}]`);
+  const result: ClosePageResult = await firefox.closePage(contextId);
+  return structuredResponse(`closed ${contextId}`, { ...result });
 });
 
 async function respondWithContent(
@@ -388,9 +476,10 @@ export const handleGetPageText = defineToolHandler(async function handleGetPageT
 
 export const module = defineModule({
   name: 'pages',
-  description: 'Open, navigate, select, and close pages.',
+  description: 'Discover Firefox containers and manage pages by stable context identity.',
   tools: [
     [listPagesTool, handleListPages],
+    [listUserContextsTool, handleListUserContexts],
     [newPageTool, handleNewPage],
     [navigatePageTool, handleNavigatePage],
     [selectPageTool, handleSelectPage],

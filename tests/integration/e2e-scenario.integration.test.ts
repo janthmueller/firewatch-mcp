@@ -31,6 +31,7 @@ import {
   waitFor,
 } from '../helpers/firefox.js';
 import type { FirefoxClient } from '@/firefox/index.js';
+import type { PageInfo } from '@/firefox/types.js';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -579,35 +580,38 @@ describe('E2E Scenario: Tab Management', () => {
 
   it('should open a new tab and switch between tabs', async () => {
     const simpleUrl = `file://${fixturesPath}/simple.html`;
-    const newTabIndex = await firefox.createNewPage(simpleUrl);
+    const originalContextId: string | null = firefox.getCurrentContextId();
+    if (!originalContextId) {
+      throw new Error('Expected an active browsing context');
+    }
+    const newPage: PageInfo = await firefox.createNewPage(simpleUrl, {
+      userContext: 'default',
+      background: false,
+    });
     await waitForPageLoad();
 
-    expect(newTabIndex).toBeGreaterThan(0);
+    expect(newPage.contextId).not.toBe(originalContextId);
 
     // Verify new tab
     const snapshot = await firefox.takeSnapshot();
     expect(snapshot.text).toContain('Simple Test Page');
 
     // Switch back to first tab
-    await firefox.selectTab(0);
+    await firefox.selectPage(originalContextId);
     await waitForPageLoad(200);
 
     const snapshot2 = await firefox.takeSnapshot();
     expect(snapshot2.text).toContain('E2E Test Application');
 
     // Close the second tab
-    await firefox.closeTab(newTabIndex);
+    await firefox.closePage(newPage.contextId);
   }, 20000);
 
   it('should list tabs correctly', async () => {
-    await firefox.refreshTabs();
-    const tabs = firefox.getTabs();
+    const pages: PageInfo[] = await firefox.listPages();
 
-    expect(tabs.length).toBeGreaterThanOrEqual(1);
-
-    const currentIdx = firefox.getSelectedTabIdx();
-    expect(currentIdx).toBeGreaterThanOrEqual(0);
-    expect(currentIdx).toBeLessThan(tabs.length);
+    expect(pages.length).toBeGreaterThanOrEqual(1);
+    expect(pages.filter((page: PageInfo): boolean => page.isCurrent)).toHaveLength(1);
   }, 10000);
 });
 

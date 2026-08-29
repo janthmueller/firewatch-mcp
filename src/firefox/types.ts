@@ -3,6 +3,7 @@
  */
 
 export type BrowsingContextId = string;
+export type UserContextId = string;
 
 /**
  * BiDi browsing context (tab/window)
@@ -10,9 +11,39 @@ export type BrowsingContextId = string;
 export interface BrowsingContext {
   context: BrowsingContextId;
   url: string;
-  title?: string;
-  children?: BrowsingContext[];
-  parent?: BrowsingContextId;
+  userContext: UserContextId;
+  children?: BrowsingContext[] | null;
+  parent?: BrowsingContextId | null;
+  clientWindow?: string;
+  originalOpener?: BrowsingContextId | null;
+}
+
+/**
+ * Stable public identity for a top-level browser page.
+ */
+export interface PageInfo {
+  contextId: BrowsingContextId;
+  userContext: UserContextId;
+  url: string;
+  title: string;
+  isCurrent: boolean;
+}
+
+/**
+ * Firefox container identity as exposed by WebDriver BiDi.
+ */
+export interface UserContextInfo {
+  userContext: UserContextId;
+}
+
+export interface CreatePageOptions {
+  userContext: UserContextId;
+  background: boolean;
+}
+
+export interface ClosePageResult {
+  closedContextId: BrowsingContextId;
+  currentContextId: BrowsingContextId | null;
 }
 
 /**

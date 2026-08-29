@@ -16,7 +16,14 @@ const INSTRUCTIONS_INTRO = [
 ].join(' ');
 
 // Basic tools worth pushing towards the client in any case.
-const CORE_TOOLS = ['list_pages', 'new_page', 'navigate_page', 'take_snapshot', 'get_page_text'];
+const CORE_TOOLS = [
+  'list_user_contexts',
+  'list_pages',
+  'new_page',
+  'navigate_page',
+  'take_snapshot',
+  'get_page_text',
+];
 
 // Additional tool suggestions for specific tasks.
 // Note: this does not have to cover all possible tools.

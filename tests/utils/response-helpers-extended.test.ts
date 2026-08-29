@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   successResponse,
+  structuredResponse,
   errorResponse,
   jsonResponse,
   truncateText,
@@ -36,6 +37,19 @@ describe('Response Helpers - Extended', () => {
     it('should not have isError property', () => {
       const response = successResponse('Test');
       expect(response).not.toHaveProperty('isError');
+    });
+  });
+
+  describe('structuredResponse', () => {
+    it('returns readable and machine-readable content together', () => {
+      const structuredContent = { pages: [{ contextId: 'ctx-1' }] };
+
+      const response = structuredResponse('1 page', structuredContent);
+
+      expect(response).toEqual({
+        content: [{ type: 'text', text: '1 page' }],
+        structuredContent,
+      });
     });
   });
 

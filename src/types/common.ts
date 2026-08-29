@@ -10,4 +10,5 @@ export interface McpToolResponse {
   [key: string]: unknown;
   content: McpContentItem[];
   isError?: boolean;
+  structuredContent?: Record<string, unknown>;
 }

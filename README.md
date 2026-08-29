@@ -26,7 +26,7 @@ See [SECURITY.md](SECURITY.md) for a full breakdown of risks and how to report v
 ## Requirements
 
 - Node.js ≥ 20.19.0
-- Firefox 100+ installed (auto‑detected, or pass `--firefox-path`)
+- Firefox 124+ installed (auto-detected, or pass `--firefox-path`)
 
 ## Install and use with Claude Code or Codex (npx)
 
@@ -112,7 +112,7 @@ npx @modelcontextprotocol/inspector npx @mozilla/firefox-devtools-mcp@latest --s
 
 Then call tools like:
 
-- `list_pages`, `select_page`, `navigate_page`
+- `list_user_contexts`, then `list_pages`, `new_page`, `select_page`, `navigate_page`
 - `take_snapshot` then `click_by_uid` / `fill_by_uid`
 - `list_network_requests` (always‑on capture), `get_network_request`
 - `list_downloads` (always‑on capture), `set_download_behavior`
@@ -234,7 +234,7 @@ Both flags are required because the MCP uses both WebDriver Classic (`--marionet
 
 ## Tool overview
 
-- Pages: list/new/navigate/select/close/get_page_text (get_page_text supports optional `saveTo`)
+- Pages: list user contexts; list pages with stable `contextId` and `userContext`; create in an explicit user context; navigate/select/close by page identity; get_page_text (optional `saveTo`)
 - Snapshot/UID: take/resolve/clear (take supports optional `saveTo`)
 - Input: click/hover/fill/drag/upload/form fill
 - Network: list/get (ID‑first, filters, always‑on capture; both support optional `saveTo`)

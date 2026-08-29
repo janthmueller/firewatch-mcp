@@ -122,6 +122,21 @@ export function successResponse(message: string): McpToolResponse {
   };
 }
 
+export function structuredResponse(
+  message: string,
+  structuredContent: Record<string, unknown>
+): McpToolResponse {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: message,
+      },
+    ],
+    structuredContent,
+  };
+}
+
 export function errorResponse(error: Error | string): McpToolResponse {
   const message = error instanceof Error ? error.message : error;
   return {
