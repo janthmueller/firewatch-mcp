@@ -16,7 +16,7 @@ import {
 import { connect as netConnect } from 'node:net';
 import { homedir } from 'node:os';
 import { dirname, join, delimiter } from 'node:path';
-import type { FirefoxLaunchOptions } from './types.js';
+import type { BrowsingContextId, FirefoxLaunchOptions } from './types.js';
 import { log, logDebug } from '../utils/logger.js';
 import { resolveProfilePath } from './profile.js';
 
@@ -151,7 +151,7 @@ async function findGeckodriver(): Promise<string> {
 }
 
 export class FirefoxCore {
-  private currentContextId: string | null = null;
+  private currentContextId: BrowsingContextId | null = null;
   private driver: WebDriver | null = null;
   private firefoxVersion: string | null = null;
   private logFileFd: number | undefined;
@@ -433,7 +433,7 @@ export class FirefoxCore {
     }
 
     try {
-      await this.driver.getWindowHandle();
+      this.currentContextId = await this.driver.getWindowHandle();
       return true;
     } catch (e) {
       logDebug('Previously selected tab is no longer available', e);
@@ -468,14 +468,14 @@ export class FirefoxCore {
   /**
    * Get current browsing context ID
    */
-  getCurrentContextId(): string | null {
+  getCurrentContextId(): BrowsingContextId | null {
     return this.currentContextId;
   }
 
   /**
    * Update current context ID (used by page management)
    */
-  setCurrentContextId(contextId: string): void {
+  setCurrentContextId(contextId: BrowsingContextId | null): void {
     this.currentContextId = contextId;
   }
 

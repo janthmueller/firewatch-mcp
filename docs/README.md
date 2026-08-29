@@ -3,6 +3,7 @@
 ## Firewatch v2
 
 - [Feature inventory](v2-feature-inventory.md)
+- [Browser context identity](browser-context-identity.md)
 - [Supply-chain security](security/supply-chain-baseline.md)
 - [Project tracker](tracking/project_tracker.md)
 

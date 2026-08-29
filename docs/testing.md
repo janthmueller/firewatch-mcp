@@ -15,6 +15,9 @@ npx vitest run tests/integration
 # Run the e2e scenario suite
 npx vitest run tests/integration/e2e-scenario.integration.test.ts
 
+# Verify touched page-identity coverage
+npx vitest run --coverage tests/firefox/pages.test.ts tests/tools/pages.test.ts
+
 # Watch mode (re-runs on file changes)
 npm test
 ```
@@ -31,6 +34,11 @@ headless Firefox instance and tears it down after the tests.
 
 All tests are self-contained (no ordering dependencies) and use active polling
 (`waitFor`) instead of fixed sleeps for async BiDi events.
+
+`tests/integration/tabs.integration.test.ts` creates a temporary non-default
+BiDi user context. It verifies explicit container placement, background page
+creation, stable context IDs, non-activating close behavior, and snapshot
+isolation before removing the temporary context.
 
 ### Design principles
 

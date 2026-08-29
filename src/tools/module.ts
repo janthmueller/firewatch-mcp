@@ -9,7 +9,14 @@
 import type { McpToolResponse } from '../types/common.js';
 import { errorResponse } from '../utils/response-helpers.js';
 
-export type JsonSchemaType = 'array' | 'boolean' | 'integer' | 'number' | 'object' | 'string';
+export type JsonSchemaType =
+  | 'array'
+  | 'boolean'
+  | 'integer'
+  | 'null'
+  | 'number'
+  | 'object'
+  | 'string';
 
 export interface JsonSchemaProperty {
   type: JsonSchemaType | readonly JsonSchemaType[];
@@ -29,11 +36,14 @@ export interface InputSchema {
   required?: readonly string[];
 }
 
+export type OutputSchema = InputSchema;
+
 export interface ToolDefinition {
   name: string;
   description: string;
   annotations?: { readOnlyHint?: boolean; [key: string]: unknown };
   inputSchema: InputSchema;
+  outputSchema?: OutputSchema;
 }
 
 export type ToolHandler = (input: unknown) => Promise<McpToolResponse>;

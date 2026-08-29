@@ -2,7 +2,16 @@
  * Firefox Client - Public facade for modular Firefox automation
  */
 
-import type { FirefoxLaunchOptions, ConsoleMessage, LogpointResult } from './types.js';
+import type {
+  BrowsingContextId,
+  ClosePageResult,
+  ConsoleMessage,
+  CreatePageOptions,
+  FirefoxLaunchOptions,
+  LogpointResult,
+  PageInfo,
+  UserContextInfo,
+} from './types.js';
 import { WebElement } from 'selenium-webdriver';
 import { FirefoxCore } from './core.js';
 import { BiDiFacade } from './bidi.js';
@@ -11,7 +20,7 @@ import { remoteValueToNative } from '../utils/remote-value.js';
 import { ConsoleEvents, NetworkEvents, DebuggingEvents, DownloadEvents } from './events/index.js';
 import type { NetworkBodyResult } from './events/network.js';
 import { DomInteractions } from './dom.js';
-import { PageManagement, type ReadinessState } from './pages.js';
+import { PageManagement, type PageBiDi, type ReadinessState } from './pages.js';
 import { SnapshotManager, type Snapshot, type SnapshotOptions } from './snapshot/index.js';
 
 /**
@@ -95,11 +104,24 @@ export class FirefoxClient {
       this.snapshot!.resolveUidToElement(uid)
     );
 
+    const pageBiDi: PageBiDi = {
+      navigate: async (params): Promise<void> => {
+        await this.getBidi().sendCommand('browsingContext.navigate', params);
+      },
+      getTree: (params) => this.getBidi().sendCommand('browsingContext.getTree', params),
+      getUserContexts: () => this.getBidi().sendCommand('browser.getUserContexts', {}),
+      evaluate: (params) => this.getBidi().sendCommand('script.evaluate', params),
+      create: (params) => this.getBidi().sendCommand('browsingContext.create', params),
+      close: async (params): Promise<void> => {
+        await this.getBidi().sendCommand('browsingContext.close', params);
+      },
+    };
+
     this.pages = new PageManagement(
       driver,
       () => this.core.getCurrentContextId(),
-      (id: string) => this.core.setCurrentContextId(id),
-      (method: string, params: Record<string, any>) => this.getBidi().sendCommand(method, params)
+      (id: BrowsingContextId | null) => this.core.setCurrentContextId(id),
+      pageBiDi
     );
   }
 
@@ -274,46 +296,50 @@ export class FirefoxClient {
     return await this.pages.dismissDialog();
   }
 
-  getTabs(): Array<{ actor: string; title: string; url: string }> {
+  async listPages(): Promise<PageInfo[]> {
     if (!this.pages) {
       throw new Error('Not connected');
     }
-    return this.pages.getTabs();
+    return await this.pages.listPages();
   }
 
-  getSelectedTabIdx(): number {
+  async listUserContexts(): Promise<UserContextInfo[]> {
     if (!this.pages) {
       throw new Error('Not connected');
     }
-    return this.pages.getSelectedTabIdx();
+    return await this.pages.listUserContexts();
   }
 
-  async refreshTabs(): Promise<void> {
+  async getPage(contextId: BrowsingContextId): Promise<PageInfo> {
     if (!this.pages) {
       throw new Error('Not connected');
     }
-    return await this.pages.refreshTabs();
+    return await this.pages.getPage(contextId);
   }
 
-  async selectTab(index: number): Promise<void> {
+  async selectPage(contextId: BrowsingContextId): Promise<PageInfo> {
     if (!this.pages) {
       throw new Error('Not connected');
     }
-    return await this.pages.selectTab(index);
+    return await this.pages.selectPage(contextId);
   }
 
-  async createNewPage(url: string, wait?: ReadinessState): Promise<number> {
+  async createNewPage(
+    url: string,
+    options: CreatePageOptions,
+    wait?: ReadinessState
+  ): Promise<PageInfo> {
     if (!this.pages) {
       throw new Error('Not connected');
     }
-    return await this.pages.createNewPage(url, wait);
+    return await this.pages.createNewPage(url, options, wait);
   }
 
-  async closeTab(index: number): Promise<void> {
+  async closePage(contextId: BrowsingContextId): Promise<ClosePageResult> {
     if (!this.pages) {
       throw new Error('Not connected');
     }
-    return await this.pages.closeTab(index);
+    return await this.pages.closePage(contextId);
   }
 
   // ============================================================================
@@ -482,7 +508,7 @@ export class FirefoxClient {
    * Get current browsing context ID (for advanced operations)
    * @internal
    */
-  getCurrentContextId(): string | null {
+  getCurrentContextId(): BrowsingContextId | null {
     return this.core.getCurrentContextId();
   }
 
@@ -490,7 +516,7 @@ export class FirefoxClient {
    * Update current browsing context ID
    * @internal
    */
-  setCurrentContextId(contextId: string): void {
+  setCurrentContextId(contextId: BrowsingContextId | null): void {
     this.core.setCurrentContextId(contextId);
   }
 

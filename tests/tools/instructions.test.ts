@@ -16,6 +16,7 @@ describe('Server instructions', () => {
 
   it('only suggests loading tools which are enabled', () => {
     const { instructions } = buildToolset({ tools: ['pages'] });
+    expect(instructions).toContain('list_user_contexts');
     expect(instructions).toContain('list_pages');
     expect(instructions).not.toContain('take_snapshot');
     expect(instructions).not.toContain('list_console_messages');

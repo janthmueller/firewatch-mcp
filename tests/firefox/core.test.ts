@@ -69,6 +69,7 @@ describe('FirefoxCore', () => {
 
       expect(connected).toBe(true);
       expect(getAllWindowHandles).not.toHaveBeenCalled();
+      expect(core.getCurrentContextId()).toBe('current-tab');
     });
 
     it('should switch to the first available tab when the current tab is gone', async () => {

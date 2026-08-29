@@ -8,17 +8,29 @@ The MCP server uses **Selenium WebDriver** with WebDriver BiDi to drive Firefox.
 
 Used for tab management, JavaScript evaluation, console events, network monitoring, screenshots, and page content access. Selenium manages the WebSocket connection; no custom protocol code is needed.
 
+Page identity uses the stable BiDi `context` and `userContext` fields. Page
+discovery calls `browsingContext.getTree` and reads titles with context-targeted
+`script.evaluate`, so listing pages does not switch or activate tabs. Explicit
+selection still uses Selenium's window switch to keep classic WebDriver DOM
+operations aligned with the MCP automation context; that operation activates
+the selected browser tab.
+
+New tabs use `browsingContext.create` with an explicit `userContext`. Passing
+`background: true` preserves both the current automation context and the
+human-visible foreground tab. See [Browser context identity](browser-context-identity.md)
+for the public MCP contract.
+
 ## Module Structure
 
 **`src/firefox/index.ts`** (`FirefoxClient`) — public facade, delegates to modules below.
 
-| Module | Responsibilities |
-|--------|-----------------|
-| `core.ts` | WebDriver + BiDi connection lifecycle |
-| `dom.ts` | JS evaluation, element lookup, input actions (click/hover/fill/drag/upload) |
-| `pages.ts` | Tab/window management, navigation, history, viewport |
-| `events.ts` | Console buffer (BiDi live events), network buffer (BiDi live events) |
-| `types.ts` | Shared TypeScript types |
+| Module      | Responsibilities                                                                 |
+| ----------- | -------------------------------------------------------------------------------- |
+| `core.ts`   | WebDriver + BiDi connection lifecycle                                            |
+| `dom.ts`    | JS evaluation, element lookup, input actions (click/hover/fill/drag/upload)      |
+| `pages.ts`  | Stable page/container identity, tab lifecycle, navigation, history, and viewport |
+| `events.ts` | Console buffer (BiDi live events), network buffer (BiDi live events)             |
+| `types.ts`  | Shared TypeScript types                                                          |
 
 ## Initialization Order
 
