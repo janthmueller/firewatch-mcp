@@ -3,7 +3,7 @@
 ## Firewatch v2
 
 - [Feature inventory](v2-feature-inventory.md)
-- [Supply-chain security baseline](security/supply-chain-baseline.md)
+- [Supply-chain security](security/supply-chain-baseline.md)
 - [Project tracker](tracking/project_tracker.md)
 
 ## Mozilla Baseline

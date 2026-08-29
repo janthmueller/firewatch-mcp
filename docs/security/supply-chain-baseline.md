@@ -1,80 +1,124 @@
-# Supply-Chain Security Baseline
+# Supply-Chain Security
 
 ## Scope
 
-This baseline records the repository state at the start of Firewatch v2 on
-2026-08-29. It covers controls visible in the repository and a point-in-time npm
-advisory scan. GitHub repository settings such as secret scanning and branch
-protection were not audited here.
+This document records the repository controls and point-in-time npm advisory
+results for Firewatch v2 as of 2026-08-29. GitHub repository settings such as
+branch protection, secret scanning, trusted-publisher configuration, and
+environment protection are not enforced by files in this repository and must be
+verified separately.
 
-## Existing Controls
+## Implemented Controls
 
-- CI installs the committed lockfile with `npm ci`.
-- The lockfile records registry URLs and integrity hashes.
+### Dependencies
+
+- CI and release builds install the committed lockfile with `npm ci`.
 - Direct runtime and development dependencies use exact versions.
-- Pull-request checks use the `pull_request` event, not `pull_request_target`.
-- The npm publish workflow grants only `contents: read` and `id-token: write`.
-- npm publishing uses OIDC trusted publishing and `--provenance`.
-- Build, type, format, lint, and test checks run before normal releases.
+- `npm run audit:production` rejects high or critical production advisories in
+  pull-request, push, release, and publish build jobs.
+- Dependency Review rejects pull requests that introduce high or critical
+  advisories.
+- A copy of `.github/dependabot.yml` on default `main` checks npm and GitHub
+  Actions dependencies weekly against the `firewatch-v2` integration branch.
+  The matching v2 copy is retained for the eventual default-branch cutover.
+- The lockfile records registry URLs and integrity hashes.
 
-These controls improve reproducibility and release traceability. They do not by
-themselves detect a compromised dependency, malicious lockfile update, or
-compromised GitHub Action.
+### Workflows
 
-## Current Gaps
+- Every third-party GitHub Action is pinned to a full commit SHA. Version
+  comments allow Dependabot to propose reviewed SHA updates.
+- Workflows declare explicit permissions, and checkout does not persist GitHub
+  credentials into the working tree.
+- CodeQL analyzes JavaScript, TypeScript, and GitHub Actions workflows on
+  relevant pushes, pull requests, and a weekly schedule.
+- Pull-request workflows use `pull_request`, not `pull_request_target`.
 
-- CI, pull-request checks, and release jobs explicitly install with
-  `--no-audit`; no advisory threshold gates those workflows.
-- No dependency-review workflow rejects vulnerable dependency changes.
-- No Dependabot or Renovate configuration is present.
-- No CodeQL or equivalent static-analysis workflow is present.
-- GitHub Actions use mutable version tags. `browser-actions/setup-firefox@latest`
-  is especially broad, and the other actions are not pinned to commit SHAs.
-- CI and pull-request workflows do not declare explicit least-privilege job
-  permissions.
-- Privileged release jobs run `npm ci` and project build scripts while holding
-  write or OIDC permissions. A compromised install or build dependency would
-  execute inside that privileged boundary.
-- No workflow verifies npm registry signatures or package provenance for the
-  installed dependency tree.
-- No SBOM is generated for release artifacts.
+### Releases
+
+- Jobs that install dependencies, run tests, or build project code have only
+  `contents: read` permission.
+- The GitHub Release job receives prebuilt artifacts and has only
+  `contents: write` permission. It does not check out or execute project code.
+- The npm publish job receives prebuilt tarballs and has only `contents: read`
+  and `id-token: write` permissions.
+- npm publishing uses OIDC trusted publishing and provenance. It passes
+  `--ignore-scripts`, so package lifecycle hooks cannot execute with publish
+  authority.
+- Publishing is triggered once by the `release.published` event; the release
+  workflow no longer dispatches a duplicate publish run.
 
 ## Advisory Snapshot
 
-The following commands were run against the committed lockfile:
+The lockfile was updated and reviewed with:
 
 ```text
-npm audit --audit-level=high --json
 npm audit --omit=dev --audit-level=high --json
+npm audit --audit-level=high --json
 ```
 
-The full dependency tree reported 11 advisories: 5 high, 1 moderate, and 5 low.
-The production dependency tree reported:
+The production tree reports zero known advisories at every severity. The full
+tree retains one high-severity advisory path and low-severity findings in
+development-only tooling:
 
-- 1 high advisory in `fast-uri`, reached through `@modelcontextprotocol/sdk` and
-  its Ajv dependency.
-- 1 moderate advisory group in `hono`, reached through
-  `@modelcontextprotocol/sdk`.
+- `@anthropic-ai/mcpb` reaches an unfixed `tmp` version through its interactive
+  prompt dependencies.
+- `tsx` reaches a low-severity `esbuild` advisory.
+- The remaining low-severity findings are in the same MCPB prompt dependency
+  chain.
 
-The npm report states that fixes are available for both production findings.
-This is a point-in-time result and must be rerun after every lockfile update.
+MCPB runs only while producing a release artifact in an unprivileged build job.
+The repository supplies fixed paths to it rather than untrusted command input.
+This reduces exposure but does not remove the vulnerable dependency. The full
+tree must be reviewed when MCPB or its prompt dependencies can be upgraded.
 
-## Required Hardening
+## Development Advisory Policy
 
-Before the first v2 beta release:
+Production high and critical advisories block CI. Development-only advisories
+are reviewed individually because build tools do not ship in the npm runtime
+package, but they still execute while producing artifacts. An accepted finding
+must be documented with its reachability and privilege boundary. A newly
+introduced high or critical advisory is rejected by Dependency Review.
 
-1. Update the lockfile to remove fixable production advisories and review all
-   remaining high-severity development advisories.
-2. Add an advisory gate for production dependencies and a documented policy for
-   development-only findings.
-3. Add dependency review for pull requests and automated dependency updates.
-4. Pin every GitHub Action to a reviewed full commit SHA and remove `@latest`.
-5. Declare explicit least-privilege permissions for every workflow and job.
-6. Separate unprivileged build and test work from jobs holding release, write,
-   or OIDC permissions. Privileged jobs should consume reviewed artifacts.
-7. Add CodeQL for JavaScript/TypeScript and verify repository secret-scanning
-   settings.
-8. Evaluate npm signature verification and release SBOM generation.
+The known MCPB advisory is temporarily accepted because no upstream fix is
+available and the affected tool runs without release credentials. It must not
+be treated as permanently waived.
 
-`npm audit` is only one signal. The layered controls above are needed because an
-unknown or newly compromised package will not necessarily have an advisory.
+## Repository Settings Snapshot
+
+A GitHub API settings audit and hardening pass on 2026-08-29 established:
+
+- Secret scanning and secret-scanning push protection are enabled.
+- Dependabot vulnerability alerts and automatic security updates are enabled.
+  GitHub currently raises security-update pull requests against default `main`,
+  not the non-default `firewatch-v2` branch.
+- Neither `main` nor `firewatch-v2` has branch protection, and the repository
+  has no rulesets.
+- CodeQL default setup is not configured, so the repository workflow provides
+  advanced setup without conflicting with a server-managed scan.
+
+The Dependabot settings were enabled through the GitHub API and are not encoded
+in this repository. GitHub reads `.github/dependabot.yml` from the default branch,
+so the v2-targeting configuration is mirrored to `main` while v2 remains a
+non-default integration branch. Security updates still target `main` by GitHub
+design; the v2 production audit and Dependency Review gates cover changes to v2
+until the default-branch cutover.
+
+Until branch and release-tag rules are configured, repository write access is
+sufficient to push changes or matching release tags without a required review
+gate.
+
+## Remaining Work
+
+- Add branch and release-tag rulesets with required reviews and status checks.
+- Define and test an explicit npm install-script allowlist. A clean npm 11
+  install currently identifies `esbuild` and `geckodriver` lifecycle scripts.
+- Verify environment protection and npm trusted-publisher settings outside the
+  repository.
+- Evaluate npm registry signature verification for installed dependencies.
+- Generate and publish release SBOMs.
+- Remove the temporary default-branch mirror and retarget Dependabot from
+  `firewatch-v2` to `main` when v2 becomes the default branch.
+
+`npm audit` is only one signal. Integrity hashes, dependency review, static
+analysis, immutable Actions, and narrow release permissions remain necessary
+because a newly compromised package may not have an advisory.
