@@ -20,9 +20,13 @@ server, runs tests with coverage, and uploads the Node.js 20 build artifact.
 Both workflows also smoke-test the public and privileged-context npm package
 archives. Codecov upload is non-blocking.
 
-Dependabot checks npm packages and SHA-pinned GitHub Actions weekly. Its target
-branch is `firewatch-v2` during v2 development and must be changed to `main`
-when v2 becomes the default branch.
+Dependabot checks npm packages and SHA-pinned GitHub Actions weekly. GitHub reads
+the configuration from the default branch, so the same v2-targeting file is
+temporarily mirrored to `main` while `firewatch-v2` remains non-default.
+Dependabot security updates still target default `main`; the production audit
+and Dependency Review gates protect v2 changes until the default-branch cutover.
+The target must be changed to `main` and the temporary mirror removed at that
+point.
 
 ## Release Boundary
 
@@ -48,7 +52,7 @@ Actions publisher. No long-lived `NPM_TOKEN` is used.
 2. Commit the release change and create the matching tag, for example `v0.10.2`.
 3. Push the tag. The release workflow rejects a tag that does not match the
    package version.
-4. The GitHub Release is created from reviewed artifacts.
+4. The GitHub Release is created from the workflow-produced artifacts.
 5. Publishing runs once from the release event and publishes both npm packages.
 
 `CODECOV_TOKEN` is the only workflow secret referenced by CI, and it is

@@ -17,19 +17,19 @@
 
 ## Phase Status
 
-| Phase                    | Status      | Notes                                                                                                                                       |
-| ------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Preserve v1              | Complete    | `legacy-v1` is published on origin.                                                                                                         |
-| Establish v2 baseline    | Complete    | `firewatch-v2` starts directly from `upstream/main`.                                                                                        |
-| Inventory fork features  | Complete    | Decisions are recorded in `docs/v2-feature-inventory.md`.                                                                                   |
-| Supply-chain baseline    | Complete    | The initial controls, gaps, and advisory snapshot are documented.                                                                           |
-| Supply-chain hardening   | In progress | Production audit gates, immutable Actions, dependency review, CodeQL, and release privilege separation are implemented on the issue branch. |
-| Browser context identity | Pending     | Expose stable `contextId` and `userContext`; stop relying on tab indexes for policy.                                                        |
-| Central authorization    | Pending     | Trusted startup principal, typed policy, centralized enforcement.                                                                           |
-| Extraction and snapshots | Pending     | Restore only approved deltas after authorization exists.                                                                                    |
-| Zen mapping              | Pending     | Map labels one-to-one to Firefox user contexts.                                                                                             |
-| Threat-model tests       | Pending     | Include negative authorization and dynamic-SPA coverage.                                                                                    |
-| Beta release             | Pending     | Documentation, package identity, hardening, and `2.0.0-beta.1`.                                                                             |
+| Phase                    | Status      | Notes                                                                                                                                                                                       |
+| ------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Preserve v1              | Complete    | `legacy-v1` is published on origin.                                                                                                                                                         |
+| Establish v2 baseline    | Complete    | `firewatch-v2` starts directly from `upstream/main`.                                                                                                                                        |
+| Inventory fork features  | Complete    | Decisions are recorded in `docs/v2-feature-inventory.md`.                                                                                                                                   |
+| Supply-chain baseline    | Complete    | The initial controls, gaps, and advisory snapshot are documented.                                                                                                                           |
+| Supply-chain hardening   | In progress | Production audit gates, immutable Actions, dependency review, CodeQL, release privilege separation, and the required default-branch Dependabot bootstrap are implemented on issue branches. |
+| Browser context identity | Pending     | Expose stable `contextId` and `userContext`; stop relying on tab indexes for policy.                                                                                                        |
+| Central authorization    | Pending     | Trusted startup principal, typed policy, centralized enforcement.                                                                                                                           |
+| Extraction and snapshots | Pending     | Restore only approved deltas after authorization exists.                                                                                                                                    |
+| Zen mapping              | Pending     | Map labels one-to-one to Firefox user contexts.                                                                                                                                             |
+| Threat-model tests       | Pending     | Include negative authorization and dynamic-SPA coverage.                                                                                                                                    |
+| Beta release             | Pending     | Documentation, package identity, hardening, and `2.0.0-beta.1`.                                                                                                                             |
 
 ## Next Work
 

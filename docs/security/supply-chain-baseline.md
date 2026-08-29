@@ -18,8 +18,9 @@ verified separately.
   pull-request, push, release, and publish build jobs.
 - Dependency Review rejects pull requests that introduce high or critical
   advisories.
-- Dependabot checks npm and GitHub Actions dependencies weekly against the
-  `firewatch-v2` integration branch.
+- A copy of `.github/dependabot.yml` on default `main` checks npm and GitHub
+  Actions dependencies weekly against the `firewatch-v2` integration branch.
+  The matching v2 copy is retained for the eventual default-branch cutover.
 - The lockfile records registry URLs and integrity hashes.
 
 ### Workflows
@@ -88,15 +89,23 @@ A GitHub API settings audit and hardening pass on 2026-08-29 established:
 
 - Secret scanning and secret-scanning push protection are enabled.
 - Dependabot vulnerability alerts and automatic security updates are enabled.
+  GitHub currently raises security-update pull requests against default `main`,
+  not the non-default `firewatch-v2` branch.
 - Neither `main` nor `firewatch-v2` has branch protection, and the repository
   has no rulesets.
 - CodeQL default setup is not configured, so the repository workflow provides
   advanced setup without conflicting with a server-managed scan.
 
 The Dependabot settings were enabled through the GitHub API and are not encoded
-in this repository. Until branch and release-tag rules are configured,
-repository write access is sufficient to push changes or matching release tags
-without a required review gate.
+in this repository. GitHub reads `.github/dependabot.yml` from the default branch,
+so the v2-targeting configuration is mirrored to `main` while v2 remains a
+non-default integration branch. Security updates still target `main` by GitHub
+design; the v2 production audit and Dependency Review gates cover changes to v2
+until the default-branch cutover.
+
+Until branch and release-tag rules are configured, repository write access is
+sufficient to push changes or matching release tags without a required review
+gate.
 
 ## Remaining Work
 
@@ -107,8 +116,8 @@ without a required review gate.
   repository.
 - Evaluate npm registry signature verification for installed dependencies.
 - Generate and publish release SBOMs.
-- Retarget Dependabot from `firewatch-v2` to `main` when v2 becomes the default
-  branch.
+- Remove the temporary default-branch mirror and retarget Dependabot from
+  `firewatch-v2` to `main` when v2 becomes the default branch.
 
 `npm audit` is only one signal. Integrity hashes, dependency review, static
 analysis, immutable Actions, and narrow release permissions remain necessary
